@@ -133,7 +133,8 @@ async def run(
                description, has_description, lever_workplace, role_type, work_arrangement, active, sources, first_seen,
                last_seen)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
-           ON CONFLICT(id) DO UPDATE SET title = excluded.title, locations = excluded.locations,
+           ON CONFLICT(id) DO UPDATE SET company = excluded.company, title = excluded.title,
+               locations = excluded.locations,
                terms = excluded.terms, url = excluded.url, posted_at = excluded.posted_at,
                date_kind = excluded.date_kind, sources = excluded.sources,
                description = COALESCE(excluded.description, postings.description),

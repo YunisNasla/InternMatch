@@ -90,3 +90,15 @@ async def test_failed_board_leaves_postings_open_and_dropped_board_closes_them(t
         assert rows(conn)["greenhouse:acme:111"]["active"] == 0  # board removed from the yaml: closed
     finally:
         SIMPLIFY_ROWS[0]["active"] = True
+
+
+async def test_board_company_name_replaces_the_simplify_name_on_merge(tmp_path):
+    conn = db.connect(tmp_path / "t.db")
+    SIMPLIFY_ROWS[0]["company_name"] = "Acme"  # Simplify's spelling differs from the seed list's
+    try:
+        await ingest(conn, companies=[])  # first seen on Simplify only
+        assert rows(conn)["greenhouse:acme:111"]["company"] == "Acme"
+        await ingest(conn)  # now the board copy merges in
+        assert rows(conn)["greenhouse:acme:111"]["company"] == "Acme Space"
+    finally:
+        SIMPLIFY_ROWS[0]["company_name"] = "Acme Space"
