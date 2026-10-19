@@ -1,0 +1,282 @@
+# InternMatch Architecture
+
+InternMatch reads a STEM student's resume and search preferences, then ranks open internships by how competitive the student would actually be, with a recruiter-style explanation for each one. Regular code pulls, filters and sorts listings. The LLM handles the parts that need judgment: reading the resume, tagging postings, scoring fit, and turning plain-English requests into filters.
+
+The full prompt text for every LLM call is in [PROMPTS.md](PROMPTS.md).
+
+## Scope
+
+- **STEM students only:** engineering, technology, science and math. A non-STEM resume still parses, but page 2 shows: "InternMatch is built for STEM students, so results may be thin for your field." The user can continue.
+- **Runs locally for now.** The code is written so it can be deployed later without changes: API keys in `.env`, the API base URL and CORS origins read from config, nothing hardcoded to localhost.
+- **No accounts.**
+
+## System overview
+
+Two pipelines share one SQLite database. The ingest pipeline runs on a schedule, pulls postings, and tags each new one with a role type and work arrangement. The per-user pipeline parses the resume, filters, and scores. Only the top 20 postings ever reach the recruiter scorer.
+
+```mermaid
+flowchart LR
+    subgraph ingest["Ingest: Mon to Fri, every 6 hours"]
+        SRC["Job sources<br/>Simplify, Greenhouse, Lever"] --> ING["Ingest job<br/>dedupe, filter, fetch descriptions"]
+        ING --> TAG["Tagger (Haiku)<br/>role type, industry, work arrangement"]
+        TAG --> DB[("SQLite<br/>listings, tags, score cache")]
+    end
+    subgraph user["Per user, on each search"]
+        UP["Page 1<br/>resume + free text"] --> PARSE["Prompt 1: resume parser<br/>Few-Shot to JSON"]
+        UP -- "page 1 free text" --> REF["Prompt 4: refinement<br/>text to filters"]
+        PARSE -- "role types, city" --> REF
+        PARSE --> PRE["Prefilter<br/>hard filters + TF-IDF, top 20"]
+        REF -- "filters" --> PRE
+        DB -- "tagged postings" --> PRE
+        PRE --> SCORE["Prompts 2 + 3: recruiter scorer<br/>Persona + CoT"]
+        SCORE -- "20 scored" --> RES["Page 3<br/>ranked cards, Also open, Score 10 more"]
+        RES -- "user feedback" --> REF
+    end
+    classDef llm fill:#dbeafe,stroke:#2563eb,stroke-width:2px;
+    class TAG,PARSE,REF,SCORE llm;
+```
+
+Blue boxes are LLM calls: the tagger at ingest, then the four graded prompts per user. Everything else is plain code, which keeps costs low and results predictable.
+
+## Pages and user inputs
+
+Users give two kinds of input:
+
+- **Profile:** who they are. Skills, projects, experience, school, grad date and city. It comes from the resume and is editable on page 2.
+- **Search preferences:** what they want. The resume can't tell us these, so the user sets them. Both are editable on page 2, and the chat on page 3 changes the preferences.
+
+| Page | What's on it | LLM work |
+| --- | --- | --- |
+| 1. Upload | Resume upload (PDF or Word), plus a "What are you looking for?" box, for example "find me aerospace positions near LA" | None |
+| 2. Review | Parsed profile on top (with parse warnings as yellow notes), search preferences below, pre-filled from the page 1 text | Prompt 1 (parse), Prompt 4 initial mode (free text to starting filters) |
+| 3. Results | Ranked cards with "Why this score", refinement chat with filter chips, "Score 10 more" button, unscored "Also open" list | Prompts 2 + 3 (score), Prompt 4 refine mode |
+
+The first visit goes through all 3 pages. After that, the profile is saved in the browser, so a returning user lands on page 3. A "Clear my data" button wipes the saved profile.
+
+### Search preferences
+
+| Preference | Input | Default | Filter state field |
+| --- | --- | --- | --- |
+| Industries | Multi-select from the 13 industry lists | All (empty list) | `industries` |
+| Role types | Multi-select, grouped into Engineering, Technology, and Science & Math | Pre-checked from the resume's `suggested_role_types` | `role_types` |
+| Home city | Text (city and state) | From the resume | `home_city` |
+| Max distance | Miles, any positive number | Blank, meaning no limit | `max_distance_miles` |
+| Work arrangement | Multi-select: in-person, hybrid, remote | All three | `work_arrangements` |
+| Term | Multi-select: Summer 2027, Fall 2026, Spring 2027. Postings with an unknown term always pass. | Summer 2027 | `terms` |
+| Posted within | Any, 7 days, 30 days | Any | `posted_within_days` |
+| Exclude companies | List of names | Empty | `exclude_companies` |
+
+`include_keywords`, `exclude_keywords`, `emphasis` and `sort_by` are also in the filter state, but only the chat sets them. The full filter state schema is in [PROMPTS.md](PROMPTS.md#prompt-4-refinement-iterative-refinement).
+
+### Result cards
+
+Each scored card shows:
+
+- `fit_score`, `tier`, `top_matches` and `recruiter_note`
+- the posted or updated time
+- the work arrangement
+
+"Why this score" expands into the requirements table, with green, yellow and red dots for met, partial and not met. Any `needs_check` eligibility gate shows as a gray tag, not a penalty.
+
+- **Arrangement:** a card whose arrangement isn't stated shows "Arrangement not listed."
+- **Term:** a card whose term is unknown shows "Term not listed."
+- **Dates:** a card says "Posted X ago" when there's a real posted date, or "Updated X ago" when only `updated_at` exists. With neither, it says "Date unknown" and sorts last.
+
+## Taxonomy
+
+These codes are the single source of truth. They are shared by the taggers, the parser, the refinement prompt, the filter UI and the database. Keep them in one module (for example, `backend/app/taxonomy.py`) and build prompt lists from it.
+
+### Industries (13, plus `other`)
+
+| Code | Label |
+| --- | --- |
+| `aerospace_defense` | Aerospace & Defense |
+| `space` | Space |
+| `automotive_mobility` | Automotive & Mobility |
+| `software_internet` | Software & Internet |
+| `semiconductors_hardware` | Semiconductors & Hardware |
+| `biotech_pharma` | Biotech & Pharma |
+| `medical_devices` | Medical Devices |
+| `energy_climate` | Energy & Climate |
+| `robotics_automation` | Robotics & Automation |
+| `manufacturing_industrial` | Manufacturing & Industrial |
+| `civil_infrastructure` | Civil & Infrastructure |
+| `research_labs` | Research & National Labs |
+| `quant_fintech` | Quant & Fintech |
+
+The company tagger can also return `other`. Companies tagged `other` still show up when the industry filter is set to All. `other` is not a selectable filter option.
+
+### Role types (22, in 3 groups)
+
+| Group | Codes |
+| --- | --- |
+| Engineering | `mechanical`, `electrical`, `aerospace`, `civil_structural`, `chemical`, `biomedical`, `industrial_manufacturing`, `materials`, `environmental`, `controls_gnc`, `embedded_firmware`, `test_integration` |
+| Technology | `software`, `data_ml`, `cybersecurity`, `it_infrastructure`, `computer_hardware` |
+| Science & Math | `biology_lab`, `chemistry_lab`, `physics`, `earth_environmental_science`, `math_statistics` |
+
+The posting tagger can also return `non_stem`. Those postings are dropped at ingest.
+
+**Industry and role type are separate tags.** Industry comes from the company: seed-list companies take their list's industry, and Simplify companies are tagged once by the company tagger. Role type comes from the posting itself, through the posting tagger. "Software intern at a rocket company" is role type `software` in industry `space`. Both are separate filters, and leaving either blank means "all."
+
+### Work arrangement values
+
+`in_person`, `hybrid`, `remote`, `not_stated`. "Not stated" postings are included by default.
+
+## Data sources
+
+| Source | What we use | Posted date | Work arrangement |
+| --- | --- | --- | --- |
+| [SimplifyJobs Summer 2027 repo](https://github.com/SimplifyJobs/Summer2027-Internships) | Title, company, locations, terms, apply link from `.github/scripts/listings.json` on the `dev` branch. No descriptions. | `date_posted` (Unix timestamp) | Location text only ("Remote", "Hybrid"); anything else is `not_stated` |
+| [Greenhouse Job Board API](https://developers.greenhouse.io/job-board.html) | Full descriptions for each seed-list company: `https://boards-api.greenhouse.io/v1/boards/{board}/jobs?content=true` | `first_published`, falling back to `updated_at` (shown as "Updated") | No built-in field, so the posting tagger reads the description, then code falls back to the location text |
+| [Lever Postings API](https://github.com/lever/postings-api) | Full descriptions for each seed-list company: `https://api.lever.co/v0/postings/{board}?mode=json` | `createdAt` | Built-in `workplaceType`: remote, onsite, hybrid or unspecified. Code uses it whenever it isn't unspecified. |
+
+- **Internships only on company boards:** Greenhouse and Lever boards list every job a company has. Keep a board posting only if its title matches `\b(interns?|internships?|co-?ops?|apprentice(ship)?s?)\b` (case-insensitive), so plurals match but "internal" and "international" don't. Most internships are full-time, so "full-time" in a title or description is never a reason to drop a posting. Simplify postings are all internships already.
+- **Terms on company boards:** boards have no term field. Code reads the term from the title, then the description, with a regex for a season and year ("Summer 2027", "Fall 2026"). If nothing matches, `terms` is stored as `["unknown"]`.
+- **Descriptions for Simplify postings:** a Simplify posting whose apply link is a Greenhouse or Lever URL gets its description pulled from that API.
+- **Title-only postings:** every other title-only posting goes to the unscored "Also open" list.
+- **Not used:** LinkedIn or Indeed. They block scraping, and it would break during a live demo.
+
+### Seed lists
+
+The Greenhouse and Lever companies live in `backend/data/companies.yaml`. They're grouped into the 13 industry lists, with about 6 to 8 companies each (around 90 total). Adding a company is one line. **The starting companies still need to be researched,** and each company's board name confirmed.
+
+```yaml
+space:
+  - name: Example Launch Co
+    ats: greenhouse        # or lever
+    board: examplelaunch   # the slug from the company's job board URL
+aerospace_defense:
+  - ...
+```
+
+When a user picks industries, the app uses those industry lists, plus any Simplify companies tagged with the same industry.
+
+## Ingest and tagging
+
+The ingest job runs inside FastAPI using APScheduler, Monday to Friday every 6 hours. It also runs on startup if the last run was more than 6 hours ago, so the data is refreshed soon after the app opens. A 6-hour schedule only fires while the app is running, which is why the startup check matters. The startup run is a background job: the app serves the data it already has right away, and the new data appears when the run finishes.
+
+1. Pull Simplify, then every seed-list board. On company boards, keep only internship titles and read the term (see [Data sources](#data-sources)).
+2. Keep active postings for the supported terms (Summer 2027, Fall 2026, Spring 2027), plus postings with an `unknown` term. Drop duplicates:
+   - First by the Greenhouse or Lever job ID, taken from the board data or from a Simplify apply link. The same job listed on Simplify and on a seed-list board is kept once, with the board's description.
+   - Then, for postings with no job ID, by company, title and location.
+3. Pull descriptions for Simplify postings with a Greenhouse or Lever apply link.
+4. Run the **posting tagger** on each *new* posting with a description. It returns role type and work arrangement.
+   - Postings tagged `non_stem` are dropped.
+   - For Lever postings, Lever's own `workplaceType` overrides the tagger whenever it isn't "unspecified."
+   - If the arrangement is still `not_stated`, code reads the location text: "Remote" or "Hybrid" in a location sets it. This keeps a "Remote - US" posting from being treated as an unplaceable city.
+   - Title-only postings get their work arrangement from the location text the same way.
+5. Run the **company tagger** once for any new Simplify company that isn't on a seed list. Seed-list companies take their list's industry.
+6. Save everything to SQLite. A posting is never tagged twice, and a company is never tagged twice.
+7. Close removed postings. After a *successful* pull of a source, set `active = false` on that source's postings that weren't in the pull. When a pull fails, skip this step for that source, so one network error never hides its postings. Search only reads active postings.
+
+Both taggers use `claude-haiku-5-5` at `temperature=0`. Their prompts are in [PROMPTS.md](PROMPTS.md#ingest-taggers).
+
+## Location and distance
+
+Distance is city to city. The user's home city and each posting's locations are looked up in a free offline US cities file with latitude and longitude (for example, the SimpleMaps basic US cities CSV). Distance is computed with the haversine formula, with no API calls.
+
+- **Aliases:** a small alias table maps common short names to a city before lookup, for both the home city and posting locations. For example: LA to Los Angeles, CA; SF and Bay Area to San Francisco, CA; NYC to New York, NY; DC to Washington, DC.
+- **Home city check:** the home city is looked up whenever it changes. If it isn't found, page 2 shows "City not found" under the field and keeps the old value. A chat change to an unknown city is dropped, and the reply says the city couldn't be found.
+
+Distance rules:
+
+- **No limit:** if max distance is blank, there's no distance check.
+- **Remote postings** skip the distance check.
+- **Hybrid, in-person and not-stated postings** pass if *any* of their locations is within range.
+- **Unplaceable locations:** when a limit is set, postings whose location can't be found (typos, "Multiple Locations," non-US cities) are hidden. A note says how many, for example "8 postings hidden because their location couldn't be found."
+- **Remote only:** if Remote is the only arrangement selected, the miles box is grayed out.
+
+## Prefilter and scoring
+
+1. **Hard filters (code):** industry, role type, term, posted within, work arrangement, distance, excluded companies, and the chat-only include and exclude keywords.
+2. **Split:**
+   - Postings **with** descriptions are ranked by TF-IDF similarity (`scikit-learn`) between the profile text and the posting text. The top 20 go to the scorer.
+   - Postings **without** descriptions that pass the filters go to "Also open," newest first. They are never sent to the scorer.
+3. **Scoring:** Prompts 2 + 3 run once per posting, in parallel, using `asyncio.gather` with a semaphore of about 5. Anything already in the score cache is skipped.
+4. **Score 10 more:** sends the next 10 postings from the prefilter ranking to the scorer, and appends the results.
+5. **Sorting:** results sort by `fit_score` by default. The chat can switch `sort_by` to `posted`.
+
+## Refinement loop
+
+Prompt 4 never edits results directly. It returns a small list of changes to the filter state, and code applies them.
+
+1. Validate every change against the [field table](PROMPTS.md#field-table) (type, allowed values and actions), and drop anything invalid.
+2. Apply the changes. On page 2 they pre-fill the form. On page 3 each one shows as a chip above the results ("Within 30 mi", "Weighing: controls work"), and the user can undo it.
+3. Rerun the prefilter. A posting already scored is never rescored, since it comes from the cache. Postings that newly enter the top 20 after a filter or distance change are scored, so their cards show a loading state until the score arrives.
+4. If `emphasis` changed, every top 20 posting is rescored, since the scoring itself changed.
+5. Show the `reply` in the chat.
+
+The last 3 rounds of messages and replies are sent with each refine call, so "actually, put Seattle back" works.
+
+## Privacy and caching
+
+- **Profile storage:** no accounts. The parsed profile lives in the browser's local storage and is sent with each request. It's never written to the server's disk.
+- **Resume handling:** the resume file is read in memory and thrown away after parsing. The parser keeps only city and state, never a street address or ZIP.
+- **What SQLite stores:** listings, tags, and the score cache.
+- **Cache key:** `(profile hash, job id, emphasis, prompt version)`. The profile hash is built from everything *except* location, and the profile is sent to the scorer without its location field. Changing your city or radius never rescores a posting already scored.
+- **Prompt version:** a short hash of the scorer prompt files plus the model name. Editing the scorer prompt or switching the model gives new keys, so old scores are never returned for a new prompt.
+- **Clear my data** wipes the browser copy of the profile.
+
+## Tech stack
+
+| Layer | Pick | Why |
+| --- | --- | --- |
+| Frontend | React + Vite + Tailwind, React Router for the 3 pages | Clean, fast to style |
+| Backend | Python + FastAPI | Easy PDF parsing and data work, async for parallel LLM calls |
+| Scheduler | APScheduler inside FastAPI | Runs ingest Mon to Fri every 6 hours, no separate service |
+| Resume text | `pdfplumber` (PDF), `python-docx` (Word) | Plain text goes to Prompt 1, and the file is never saved |
+| Prefilter | Hard filters in code, then TF-IDF similarity (`scikit-learn`) | No extra API cost; picks the top 20 to score |
+| Distance | Offline US cities CSV + haversine | Free, fast, works offline |
+| LLM | Claude API: `claude-sonnet-5-5` for Prompts 1 and 4, `claude-haiku-5-5` for scoring and tagging | Scoring and tagging are high volume, so the fast model fits |
+| Validation | Pydantic models for every LLM output | One retry with the validation error on failure |
+| Storage | SQLite | Listings, tags and the score cache |
+
+Every LLM call in the app uses `temperature=0`. The evaluation's consistency test runs at 1.0 (see PROMPTS.md).
+
+## Data model (starting proposal)
+
+These tables cover everything above. Adjust freely during the build.
+
+| Table | Key columns |
+| --- | --- |
+| `postings` | `id`, `source` (simplify, greenhouse, lever), `company`, `title`, `locations` (JSON), `terms` (JSON), `url`, `posted_at`, `date_kind` (posted, updated, unknown), `description`, `has_description`, `role_type`, `work_arrangement`, `ats_job_id` (Greenhouse or Lever job ID, for dedupe), `active`, `first_seen`, `last_seen` |
+| `companies` | `name`, `industry`, `industry_source` (seed_list or tagger), `confidence`, `ats`, `board` |
+| `scores` | `profile_hash`, `job_id`, `emphasis`, `prompt_version`, `result_json`, `created_at` |
+| `ingest_runs` | `started_at`, `finished_at`, counts per source, error notes |
+
+## API (starting proposal)
+
+| Endpoint | Input | Output |
+| --- | --- | --- |
+| `POST /api/parse` | Resume file (multipart) + optional free text | `profile`, starting `filters`, Prompt 4 `reply`, `is_stem`. Runs the parser first, then Prompt 4 initial mode on a filter state that already holds the resume's role types and city. |
+| `POST /api/search` | `profile`, `filters`, `offset` | Scored cards, "Also open" list, hidden-location count, `has_more` |
+| `POST /api/refine` | `profile`, `filters`, `message`, results summary, recent turns | `intent`, applied `changes`, `reply`, updated `filters` |
+| `GET /api/meta` | None | Taxonomy lists and labels, last ingest time |
+| `POST /api/ingest` | None | Triggers an ingest run. The route exists only when `ENABLE_ADMIN_ROUTES=true` (default `false`). |
+
+"Score 10 more" calls `/api/search` with the next `offset`.
+
+## Request flow
+
+1. **Page 1:** the user uploads a resume and optionally types what they're looking for.
+2. Prompt 1 parses the resume. If `is_stem` is false, the app shows the STEM-only message. Code puts the resume's `suggested_role_types` and city into the filter state. Then Prompt 4 (initial mode) turns the free text into changes on top of that state.
+3. **Page 2:** the user checks and edits the profile and preferences.
+4. **Prefilter:**
+   - Code applies every hard filter.
+   - Postings with descriptions are ranked by TF-IDF, and the top 20 move on.
+   - Title-only postings that pass go to "Also open."
+5. Prompts 2 + 3 score the 20 in parallel, skipping anything already cached.
+6. **Page 3:**
+   - Cards are sorted by fit score.
+   - The chat sends feedback through Prompt 4 (refine mode). It changes the filters, and the list updates.
+   - "Score 10 more" scores the next 10.
+
+## Demo reliability
+
+The live demo runs for real, used the way a normal user would. If an LLM call fails during a search, the app automatically falls back to cached results where they exist, and shows what it couldn't score instead of failing the page.
+
+The cache key includes the profile hash, so a fallback only has something to show for a profile that was already searched. Before every demo:
+
+1. Start the app, then run `POST /api/ingest` (with `ENABLE_ADMIN_ROUTES=true`) within 6 hours of the demo, so the data is fresh. A scheduled run can still fire during the demo, but it runs in the background.
+2. Run the exact demo resume and the planned chat messages once, end to end, to warm the score cache.
+3. On stage, use the same resume and don't edit the profile on page 2. Any profile edit changes the hash and leaves nothing cached to fall back on.
