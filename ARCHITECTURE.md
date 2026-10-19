@@ -250,7 +250,7 @@ These tables cover everything above. Adjust freely during the build.
 | --- | --- | --- |
 | `POST /api/parse` | Resume file (multipart, PDF or DOCX, up to 5 MB) + optional free text | `profile`, starting `filters`, Prompt 4 `reply`, `is_stem`. Runs Prompt 1, builds the default filters from `suggested_role_types` and city, then runs Prompt 4 in initial mode. Prompt 4 is skipped when the free text is empty, and `reply` is then empty. |
 | `POST /api/search` | `profile`, `filters`, `offset` | Scored cards, "Also open" list, hidden-location count, `has_more`, and the postings it couldn't score |
-| `POST /api/refine` | `profile`, `filters`, `message`, results summary, recent turns | `intent`, applied `changes`, `reply`, updated `filters` |
+| `POST /api/refine` | `filters`, `message`, results summary, recent turns | `intent`, applied `changes`, `reply`, updated `filters` |
 | `GET /api/meta` | None | Taxonomy lists and labels, supported terms, last ingest time |
 | `POST /api/ingest` | None | Triggers an ingest run. Exists only when `ENABLE_ADMIN_ROUTES=true` (default false). |
 

@@ -119,3 +119,20 @@ async def search(req: SearchRequest, claude: Annotated[anthropic.AsyncAnthropic,
         "has_more": has_more,
         "unscored": [{k: r[k] for k in ("id", "company", "title", "url")} for r in batch if r["id"] in unscored],
     }
+
+
+class RefineRequest(BaseModel):
+    filters: FilterState
+    message: str = Field(min_length=1, max_length=500)
+    results_summary: str = Field(default="", max_length=6000)
+    recent_turns: str = Field(default="", max_length=3000)
+
+
+@app.post("/api/refine")
+async def refine_route(req: RefineRequest, claude: Annotated[anthropic.AsyncAnthropic, Depends(get_llm)]):
+    """Page 3 chat. The client reruns /api/search with the new filters; a new emphasis gives a new cache key."""
+    try:
+        return await refine.refine(claude, "refine", req.filters, req.message, req.results_summary, req.recent_turns)
+    except (llm.LLMError, anthropic.APIError) as error:
+        log.warning("refine failed: %s", type(error).__name__)
+        raise HTTPException(502, LLM_DOWN) from error

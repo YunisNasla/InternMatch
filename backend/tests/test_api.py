@@ -84,3 +84,26 @@ def test_search_scores_described_postings_and_lists_title_only_ones(client):
 def test_search_rejects_a_bad_profile(client):
     http, _ = client
     assert http.post("/api/search", json={"profile": {"is_stem": "maybe"}, "filters": {}}).status_code == 422
+
+
+def test_refine_applies_emphasis_and_the_next_search_rescores(client):
+    http, fake = client
+    from tests.test_scorer import GOOD
+    seed_postings()
+    profile = json.loads(PARSED)
+    fake.answer = lambda system, user, n: json.dumps(GOOD)
+    http.post("/api/search", json={"profile": profile, "filters": {}})
+    fake.answer = lambda system, user, n: json.dumps({"intent": "update_filters", "reply": "Weighing controls work.",
+        "changes": [{"field": "emphasis", "action": "set", "value": "controls work"}]})
+    body = http.post("/api/refine", json={"filters": {}, "message": "I care more about controls work"}).json()
+    assert body["filters"]["emphasis"] == "controls work" and body["reply"] == "Weighing controls work."
+    assert "<mode>refine</mode>" in fake.calls[-1]["messages"][-1]["content"]
+    fake.answer = lambda system, user, n: json.dumps(GOOD)
+    calls = len(fake.calls)
+    http.post("/api/search", json={"profile": profile, "filters": body["filters"]})
+    assert len(fake.calls) == calls + 1 and "controls work" in fake.calls[-1]["system"]
+
+
+def test_refine_rejects_an_empty_message(client):
+    http, _ = client
+    assert http.post("/api/refine", json={"filters": {}, "message": ""}).status_code == 422
