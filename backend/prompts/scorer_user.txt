@@ -1,0 +1,7 @@
+<candidate_profile>
+{profile_json_without_location}
+</candidate_profile>
+
+<posting company="{company}" title="{title}" industry="{industry}" role_type="{role_type}" term="{terms}">
+{description_text}
+</posting>

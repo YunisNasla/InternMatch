@@ -47,3 +47,40 @@ def test_parse_rejects_a_text_file_with_a_plain_message(client):
     http, fake = client
     response = http.post("/api/parse", files={"file": ("resume.txt", b"hello")})
     assert response.status_code == 400 and "PDF or Word" in response.json()["detail"] and fake.calls == []
+
+
+def seed_postings():
+    from contextlib import closing
+
+    from app import db
+    with closing(db.connect()) as conn:
+        for pid, desc in (("greenhouse:acme:1", "Write C firmware for avionics."), ("simplify:2", None)):
+            conn.execute(
+                "INSERT INTO postings (id, source, company, title, locations, terms, url, posted_at, date_kind, "
+                "description, has_description, role_type, work_arrangement, active, sources, first_seen, last_seen) "
+                "VALUES (?, 'x', 'Acme', 'Firmware Intern', ?, ?, 'https://x', '2026-10-01T00:00:00Z', 'posted', ?, ?, "
+                "'embedded_firmware', 'in_person', 1, '[]', 'x', 'x')",
+                (pid, json.dumps(["Hawthorne, CA"]), json.dumps(["Summer 2027"]), desc, int(bool(desc))),
+            )
+        conn.execute("INSERT INTO companies (name, industry) VALUES ('Acme', 'space')")
+        conn.commit()
+
+
+def test_search_scores_described_postings_and_lists_title_only_ones(client):
+    http, fake = client
+    from tests.test_scorer import GOOD
+    fake.answer = lambda system, user, n: json.dumps(GOOD)
+    seed_postings()
+    profile = json.loads(PARSED)
+    body = http.post("/api/search", json={"profile": profile, "filters": {}}).json()
+    assert [c["id"] for c in body["cards"]] == ["greenhouse:acme:1"] and body["cards"][0]["score"]["tier"] == "strong"
+    assert [a["id"] for a in body["also_open"]] == ["simplify:2"]
+    assert len(fake.calls) == 1 and "simplify:2" not in json.dumps(fake.calls)
+    assert '"location"' not in fake.calls[0]["messages"][-1]["content"]  # the field, not a school name
+    again = http.post("/api/search", json={"profile": profile, "filters": {}}).json()
+    assert again["cards"] == body["cards"] and len(fake.calls) == 1  # served from the cache
+
+
+def test_search_rejects_a_bad_profile(client):
+    http, _ = client
+    assert http.post("/api/search", json={"profile": {"is_stem": "maybe"}, "filters": {}}).status_code == 422

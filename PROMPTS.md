@@ -12,7 +12,7 @@ InternMatch makes six kinds of LLM calls. Four of them carry the graded prompt e
 
 **Rules for every call:**
 
-- Don't set `temperature`. Current Claude models fix their sampling: the SDK has no `temperature` argument, and Haiku 5.5 and Sonnet 5.5 reject non-default sampling. The taggers run at `output_config.effort="low"`; every other call uses the model's default effort.
+- Don't set `temperature`. Current Claude models fix their sampling: the SDK has no `temperature` argument, and Haiku 5.5 and Sonnet 5.5 reject non-default sampling. The taggers and the scorer run at `output_config.effort="low"`; the parser and refinement use the model's default effort.
 - Validate every output with a Pydantic model. On a validation failure, send one retry with the error appended, using the text of `retry.txt`: `Your last output failed: {error}. Return corrected JSON only.`
 - Every prompt below is stored as a plain text file in `backend/prompts/` and loaded at runtime, so there's one source of truth.
 - Few-shot examples are sent as alternating user and assistant messages, not pasted into the system prompt.
@@ -242,8 +242,8 @@ Output ONLY this JSON, fields in this order:
 
 ### Implementation notes
 
-- **Parallel calls:** run the 20 calls with `asyncio.gather` and a semaphore of about 5, so you stay under rate limits. "Score 10 more" runs the same way for the next batch.
-- **Settings and caching:** cache results by `(profile hash without location, job id, emphasis, prompt version)`. The prompt version is a short hash of `scorer_system.txt`, `scorer_user.txt`, `scorer_emphasis.txt`, the taxonomy labels used in `{recruiter_domain}` and the model name, so a prompt edit never serves old scores.
+- **Parallel calls:** run the 20 calls with `asyncio.gather` and a semaphore of about 20. Each call takes about 15 s, so scoring them 5 at a time took about 80 s; the SDK retries rate-limit errors on its own. "Score 10 more" runs the same way for the next batch.
+- **Settings and caching:** cache results by `(profile hash without location, job id, emphasis, prompt version)`. The prompt version is a short hash of `scorer_system.txt`, `scorer_user.txt`, `scorer_emphasis.txt`, the taxonomy labels used in `{recruiter_domain}`, the model name and the effort level, so a prompt edit never serves old scores.
 - **On each card:** show `fit_score`, `tier`, `top_matches`, `recruiter_note`, the posted or updated time, and the work arrangement.
 - **"Why this score":** expands into the requirements table, with green, yellow and red status dots. Any `needs_check` gate shows as a gray tag, not a penalty.
 - **Validation:** `tier` must match the `fit_score` band. If they disagree, trust `fit_score` and derive the tier from the rubric.

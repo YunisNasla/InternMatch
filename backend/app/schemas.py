@@ -1,6 +1,6 @@
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
 
 from app import taxonomy
 
@@ -125,3 +125,44 @@ class RefineResult(BaseModel):
     intent: Literal["update_filters", "explain", "clarify"]
     changes: list[RefineChange] = []
     reply: str
+
+
+class Requirement(BaseModel):
+    requirement: str
+    type: Literal["must", "nice", "inferred"]
+    evidence: str
+    status: Literal["met", "partial", "not_met"]
+
+
+class Gate(BaseModel):
+    gate: str
+    status: Literal["pass", "fail", "needs_check"]
+    note: str
+
+
+def tier_for(score: int) -> str:
+    return "strong" if score >= 85 else "good" if score >= 70 else "stretch" if score >= 50 else "long_shot"
+
+
+class ScoreResult(BaseModel):
+    """Prompts 2 + 3 output. The reasoning fields come first, so the score is written last."""
+
+    requirements: list[Requirement]
+    eligibility: list[Gate] = []
+    fit_score: int = Field(ge=0, le=100)
+    tier: Literal["strong", "good", "stretch", "long_shot"]
+    confidence: Literal["high", "medium", "low"]
+    top_matches: list[str] = []
+    key_gaps: list[str] = []
+    recruiter_note: str
+    resume_tip: str
+
+    @field_validator("top_matches", "key_gaps")
+    @classmethod
+    def at_most_three(cls, items: list[str]) -> list[str]:
+        return items[:3]  # trimming is cheaper than a retry for one extra line
+
+    @model_validator(mode="after")
+    def tier_matches_score(self):
+        self.tier = tier_for(self.fit_score)  # PROMPTS.md: trust fit_score when the two disagree
+        return self

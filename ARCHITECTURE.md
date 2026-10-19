@@ -193,7 +193,7 @@ Distance is city to city. The user's home city and each posting's locations are 
 2. **Split:**
    - Postings **with** descriptions are ranked by TF-IDF similarity (`scikit-learn`) between the profile text and the posting text. The top 20 go to the scorer.
    - Postings **without** descriptions that pass the filters go to "Also open," newest first. They are never sent to the scorer.
-3. **Scoring:** Prompts 2 + 3 run once per posting, in parallel, using `asyncio.gather` with a semaphore of about 5. Anything already in the score cache is skipped.
+3. **Scoring:** Prompts 2 + 3 run once per posting, in parallel, using `asyncio.gather` with a semaphore of about 20, so the first page takes about one call's time. Anything already in the score cache is skipped.
 4. **Score 10 more:** sends the next 10 postings from the prefilter ranking to the scorer, and appends the results.
 5. **Sorting:** results sort by `fit_score` by default. The chat can switch `sort_by` to `posted`.
 
@@ -231,7 +231,7 @@ The last 3 rounds of messages and replies are sent with each refine call, so "ac
 | Validation | Pydantic models for every LLM output | One retry with the validation error on failure |
 | Storage | SQLite | Listings, tags and the score cache |
 
-No call sets `temperature`. Current Claude models fix their sampling: the SDK has no `temperature` argument, and Haiku 5.5 and Sonnet 5.5 reject non-default sampling. The taggers run at effort `low`; the other calls use the model's default effort.
+No call sets `temperature`. Current Claude models fix their sampling: the SDK has no `temperature` argument, and Haiku 5.5 and Sonnet 5.5 reject non-default sampling. The taggers and the scorer run at effort `low`; the parser and refinement use the model's default effort.
 
 ## Data model (starting proposal)
 

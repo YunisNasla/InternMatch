@@ -61,8 +61,9 @@ WORK_ARRANGEMENTS = {
 SUPPORTED_TERMS = ("Summer 2027", "Fall 2026", "Spring 2027")
 
 
-def recruiter_domain(role_type: str, industry: str) -> str:
-    role = ROLE_TYPES[role_type].lower().replace("&", "and") + " roles"
-    if industry == OTHER:
+def recruiter_domain(role_type: str | None, industry: str | None) -> str:
+    """The scorer persona's field. An untagged posting or company falls back to the generic form."""
+    role = ROLE_TYPES[role_type].lower().replace("&", "and") + " roles" if role_type in ROLE_TYPES else "STEM intern roles"
+    if industry not in INDUSTRIES:
         return role
     return f"{role} at {INDUSTRIES[industry].lower().replace('&', 'and')} companies"
