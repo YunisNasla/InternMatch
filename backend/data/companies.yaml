@@ -1,0 +1,320 @@
+aerospace_defense:
+  - name: Anduril Industries
+    ats: greenhouse
+    board: andurilindustries
+  - name: Zipline
+    ats: greenhouse
+    board: flyzipline
+  - name: Hermeus
+    ats: lever
+    board: hermeus
+  - name: Shield AI
+    ats: lever
+    board: shieldai
+  - name: Ursa Major
+    ats: greenhouse
+    board: ursamajor
+  - name: JetZero
+    ats: greenhouse
+    board: jetzero
+  - name: Pivotal
+    ats: lever
+    board: pivotal
+  - name: Epirus
+    ats: greenhouse
+    board: epirus
+space:
+  - name: SpaceX
+    ats: greenhouse
+    board: spacex
+  - name: Rocket Lab
+    ats: greenhouse
+    board: rocketlab
+  - name: Astranis
+    ats: greenhouse
+    board: astranis
+  - name: Varda Space Industries
+    ats: greenhouse
+    board: vardaspace
+  - name: Muon Space
+    ats: greenhouse
+    board: muonspace
+  - name: Vast
+    ats: greenhouse
+    board: vast
+  - name: Stoke Space
+    ats: greenhouse
+    board: stokespacetechnologies
+  - name: HawkEye 360
+    ats: greenhouse
+    board: hawkeye360
+automotive_mobility:
+  - name: Waymo
+    ats: greenhouse
+    board: waymo
+  - name: Lyft
+    ats: greenhouse
+    board: lyft
+  - name: Faraday Future
+    ats: greenhouse
+    board: faradayfuture
+  - name: Kodiak
+    ats: greenhouse
+    board: kodiak
+  - name: Harbinger
+    ats: greenhouse
+    board: harbingermotors
+  - name: Nuro
+    ats: greenhouse
+    board: nuro
+  - name: Motional
+    ats: greenhouse
+    board: motional
+  - name: Scout Motors
+    ats: greenhouse
+    board: scoutmotors
+software_internet:
+  - name: Palantir
+    ats: lever
+    board: palantir
+  - name: Databricks
+    ats: greenhouse
+    board: databricks
+  - name: Pinterest
+    ats: greenhouse
+    board: pinterest
+  - name: Datadog
+    ats: greenhouse
+    board: datadog
+  - name: Samsara
+    ats: greenhouse
+    board: samsara
+  - name: Figma
+    ats: greenhouse
+    board: figma
+  - name: Roblox
+    ats: greenhouse
+    board: roblox
+  - name: Scale AI
+    ats: greenhouse
+    board: scaleai
+semiconductors_hardware:
+  - name: PsiQuantum
+    ats: greenhouse
+    board: psiquantum
+  - name: Pure Storage
+    ats: greenhouse
+    board: purestorage
+  - name: Oura
+    ats: greenhouse
+    board: oura
+  - name: Lightmatter
+    ats: greenhouse
+    board: lightmatter
+  - name: Rigetti Computing
+    ats: lever
+    board: rigetti
+  - name: Tenstorrent
+    ats: greenhouse
+    board: tenstorrent
+  - name: Astera Labs
+    ats: greenhouse
+    board: asteralabs
+  - name: Atom Computing
+    ats: lever
+    board: atomcomputing
+biotech_pharma:
+  - name: Beam Therapeutics
+    ats: greenhouse
+    board: beamtherapeutics
+  - name: BridgeBio
+    ats: greenhouse
+    board: bridgebio
+  - name: Ginkgo Bioworks
+    ats: greenhouse
+    board: ginkgobioworks
+  - name: Recursion
+    ats: greenhouse
+    board: recursionpharmaceuticals
+  - name: Natera
+    ats: greenhouse
+    board: natera
+  - name: Twist Bioscience
+    ats: greenhouse
+    board: twistbioscience
+  - name: Freenome
+    ats: greenhouse
+    board: freenome
+  - name: Generate Biomedicines
+    ats: greenhouse
+    board: generatebiomedicines
+medical_devices:
+  - name: Neuralink
+    ats: greenhouse
+    board: neuralink
+  - name: AtriCure
+    ats: greenhouse
+    board: atricure
+  - name: Lexington Medical
+    ats: greenhouse
+    board: lexingtonmedical
+  - name: Penumbra
+    ats: lever
+    board: penumbrainc
+  - name: Butterfly Network
+    ats: greenhouse
+    board: butterflynetwork
+  - name: Tactile Medical
+    ats: greenhouse
+    board: tactilemedical
+  - name: Outset Medical
+    ats: greenhouse
+    board: outsetmedical
+  - name: Ceribell
+    ats: greenhouse
+    board: ceribell
+energy_climate:
+  - name: Kairos Power
+    ats: greenhouse
+    board: kairospower
+  - name: Pacific Fusion
+    ats: greenhouse
+    board: pacificfusion
+  - name: Redwood Materials
+    ats: greenhouse
+    board: redwoodmaterials
+  - name: Fervo Energy
+    ats: greenhouse
+    board: fervoenergy
+  - name: Oklo
+    ats: greenhouse
+    board: oklo
+  - name: Giga Energy
+    ats: greenhouse
+    board: gigaenergy
+  - name: Antora Energy
+    ats: greenhouse
+    board: antora
+  - name: Valar Atomics
+    ats: greenhouse
+    board: valaratomics
+robotics_automation:
+  - name: Figure AI
+    ats: greenhouse
+    board: figureai
+  - name: Formic
+    ats: greenhouse
+    board: formic
+  - name: Bright Machines
+    ats: lever
+    board: brightmachines
+  - name: Agility Robotics
+    ats: greenhouse
+    board: agilityrobotics
+  - name: Apptronik
+    ats: greenhouse
+    board: apptronik
+  - name: Nimble Robotics
+    ats: greenhouse
+    board: nimblerobotics
+  - name: Dexterity
+    ats: lever
+    board: dexterity
+  - name: Path Robotics
+    ats: greenhouse
+    board: pathrobotics
+manufacturing_industrial:
+  - name: Formlabs
+    ats: greenhouse
+    board: formlabs
+  - name: "Re:Build Manufacturing"
+    ats: greenhouse
+    board: rebuildmanufacturing
+  - name: Divergent
+    ats: greenhouse
+    board: divergent
+  - name: Fictiv
+    ats: greenhouse
+    board: fictiv
+  - name: Xometry
+    ats: greenhouse
+    board: xometry
+  - name: Velo3D
+    ats: lever
+    board: velo3d
+  - name: Protolabs
+    ats: lever
+    board: protolabs
+  - name: Senra Systems
+    ats: greenhouse
+    board: senrasystems
+civil_infrastructure:
+  - name: Langan
+    ats: greenhouse
+    board: langanengineeringandenvironmentalservicesllc
+  - name: Olsson
+    ats: greenhouse
+    board: olsson
+  - name: Wade Trim
+    ats: lever
+    board: wadetrim
+  - name: Stanley Consultants
+    ats: lever
+    board: stanleygroup
+  - name: Foth
+    ats: lever
+    board: foth
+  - name: AMT Engineering
+    ats: lever
+    board: amtengineering
+  - name: "Fehr & Peers"
+    ats: lever
+    board: fehrandpeers
+  - name: Geostabilization International
+    ats: greenhouse
+    board: geostabilizationinternational
+research_labs:
+  # Only 6: national labs and most institutes use Taleo, Workday or their own sites, not Greenhouse or Lever.
+  - name: Allen Institute for AI (Ai2)
+    ats: greenhouse
+    board: thealleninstitute
+  - name: Toyota Research Institute
+    ats: lever
+    board: tri
+  - name: Chan Zuckerberg Initiative
+    ats: greenhouse
+    board: chanzuckerberginitiative
+  - name: Chan Zuckerberg Biohub
+    ats: greenhouse
+    board: biohub
+  - name: Arc Institute
+    ats: greenhouse
+    board: arcinstitute
+  - name: Convergent Research
+    ats: lever
+    board: convergentresearch
+quant_fintech:
+  - name: Jump Trading
+    ats: greenhouse
+    board: jumptrading
+  - name: Optiver
+    ats: greenhouse
+    board: optiverus
+  - name: IMC Trading
+    ats: greenhouse
+    board: imc
+  - name: Tower Research Capital
+    ats: greenhouse
+    board: towerresearchcapital
+  - name: DRW
+    ats: greenhouse
+    board: drweng
+  - name: Hudson River Trading
+    ats: greenhouse
+    board: wehrtyou
+  - name: Stripe
+    ats: greenhouse
+    board: stripe
+  - name: Coinbase
+    ats: greenhouse
+    board: coinbase
