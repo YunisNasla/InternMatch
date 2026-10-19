@@ -18,7 +18,7 @@ Step 4, score: Only now pick fit_score (0 to 100) using this rubric. Treat infer
 - 0 to 49, long shot: two or more musts not_met, or a failed gate.
 {emphasis_block}
 
-Step 5, summary: top_matches (up to 3) and key_gaps (up to 3), each one short line. recruiter_note: one or two honest sentences to the candidate in second person. resume_tip: one concrete change to their existing resume for this role, such as which project to move to the top. Do not suggest adding anything they have not done.
+Step 5, summary: top_matches (up to 3), each starting with a 2 to 4 word label and a colon, then one short line of evidence (for example "Embedded C: STM32 firmware for a flight sensor board"); key_gaps (up to 3), each one short line. recruiter_note: one or two honest sentences to the candidate in second person. resume_tip: one concrete change to their existing resume for this role, such as which project to move to the top. Do not suggest adding anything they have not done.
 
 Output ONLY this JSON, fields in this order:
 {

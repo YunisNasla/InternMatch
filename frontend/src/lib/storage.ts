@@ -1,25 +1,30 @@
-// Local storage can throw (private mode, blocked site data), so every access is guarded.
-export function load<T>(key: string): T | null {
+import type { Filters, Profile, Turn } from './types'
+
+// Everything about the student lives only in this browser. Every access is guarded:
+// local storage throws in private modes and when site data is blocked.
+type Saved = { profile: Profile; filters: Filters; baseline: Filters; chat: Turn[]; reply: string }
+const KEY = 'internmatch'
+
+export function load(): Partial<Saved> {
   try {
-    const raw = localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as T) : null
+    return JSON.parse(localStorage.getItem(KEY) ?? '{}')
   } catch {
-    return null
+    return {}
   }
 }
 
-export function save(key: string, value: unknown): void {
+export function save(changes: Partial<Saved>): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    localStorage.setItem(KEY, JSON.stringify({ ...load(), ...changes }))
   } catch {
-    // Nothing to do: the app still works without saved data.
+    // The app still works for this visit without saved data.
   }
 }
 
 export function clear(): void {
   try {
-    localStorage.clear()
+    localStorage.removeItem(KEY)
   } catch {
-    // Same as above.
+    // Nothing saved to remove.
   }
 }

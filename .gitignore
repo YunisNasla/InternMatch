@@ -10,3 +10,5 @@ backend/data/*.db-*
 *.pyc
 .pytest_cache/
 .ruff_cache/
+.impeccable/review/
+.impeccable/mocks/
