@@ -28,6 +28,23 @@ _GREENHOUSE_URL = re.compile(r"greenhouse\.io/([\w-]+)/jobs/(\d+)")
 _LEVER_URL = re.compile(r"jobs\.lever\.co/([\w-]+)/([0-9a-f-]{36})")
 
 
+# shortcut: a short list of countries and hub cities seen on seed boards; extend it when non-US jobs slip through.
+_NON_US = {
+    "canada", "mexico", "united kingdom", "uk", "england", "scotland", "ireland", "germany", "france", "netherlands",
+    "switzerland", "spain", "italy", "poland", "sweden", "denmark", "norway", "finland", "belgium", "austria",
+    "portugal", "czech republic", "romania", "israel", "india", "china", "japan", "south korea", "korea", "taiwan",
+    "singapore", "hong kong", "australia", "new zealand", "brazil", "argentina", "chile", "colombia",
+    "united arab emirates", "uae", "philippines", "vietnam", "malaysia", "indonesia", "south africa",
+    "london", "amsterdam", "dublin", "paris", "berlin", "munich", "zurich", "toronto", "vancouver", "montreal",
+    "tokyo", "sydney", "bangalore", "bengaluru", "hyderabad", "shanghai", "tel aviv", "sao paulo",
+}
+
+
+def is_non_us(locations: list[str]) -> bool:
+    """True when every location names a place outside the US. Unknown text is not proof, so it counts as US."""
+    return bool(locations) and all(loc.rsplit(",", 1)[-1].strip().casefold() in _NON_US for loc in locations)
+
+
 def ats_job_id_from_url(url: str) -> tuple[str, str, str] | None:
     """(ats, board, job id) from a Greenhouse or Lever apply link, else None."""
     if m := _GREENHOUSE_URL.search(url):

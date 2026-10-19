@@ -119,3 +119,19 @@ KNOWN = {B, S}
 )
 def test_next_active(case, current, sources, open_feeds, ok_feeds, known, expected):
     assert rules.next_active(current, sources, open_feeds, ok_feeds, known) is expected, case
+
+
+@pytest.mark.parametrize(
+    "locations, expected",
+    [
+        (["London, United Kingdom"], True),
+        (["Singapore, Singapore", "Amsterdam"], True),
+        (["Toronto, ON, Canada"], True),
+        (["London, UK", "New York, NY"], False),  # one US location keeps it
+        (["Remote in USA"], False),
+        (["Multiple Locations"], False),  # unknown is not proof of non-US
+        ([], False),
+    ],
+)
+def test_non_us_postings(locations, expected):
+    assert rules.is_non_us(locations) is expected

@@ -53,7 +53,7 @@ async def run(
     ok_feeds = {feed for feed, r in results.items() if not isinstance(r, BaseException)}
     errors = {feed: type(r).__name__ for feed, r in results.items() if isinstance(r, BaseException)}
 
-    # 2. Internships only on boards, read their terms, keep supported terms plus unknown.
+    # 2. Internships only on boards, read their terms, keep supported terms plus unknown, drop non-US jobs.
     postings = []
     for feed in ok_feeds:
         for p in results[feed]:
@@ -61,7 +61,7 @@ async def run(
                 if not rules.is_internship(p.title):
                     continue
                 p.terms = rules.extract_terms(p.title, p.description)
-            if KEEP_TERMS & set(p.terms):
+            if KEEP_TERMS & set(p.terms) and not rules.is_non_us(p.locations):
                 postings.append(p)
 
     # 3. Drop duplicates, and anything already dropped as non_stem.

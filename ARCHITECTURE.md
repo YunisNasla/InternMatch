@@ -155,7 +155,7 @@ When a user picks industries, the app uses those industry lists, plus any Simpli
 The ingest job runs inside FastAPI using APScheduler, Monday to Friday every 6 hours, in the `INGEST_TIMEZONE` time zone (default `America/Los_Angeles`). It also runs on startup if the last run was more than 6 hours ago. A 6-hour schedule only fires while the app is running, which is why the startup check matters. The startup run is a background job: the app serves the data it already has right away, and new postings appear when the run finishes. Only one ingest runs at a time.
 
 1. Pull Simplify, then every seed-list board. Record whether each pull succeeded.
-2. Keep only internships on board postings (see [Data sources](#data-sources)), and read their terms. Keep postings the source still lists as open (for Simplify, `active` is true) for the supported terms (Summer 2027, Fall 2026, Spring 2027) plus `unknown`.
+2. Keep only internships on board postings (see [Data sources](#data-sources)), and read their terms. Keep postings the source still lists as open (for Simplify, `active` is true) for the supported terms (Summer 2027, Fall 2026, Spring 2027) plus `unknown`. Drop postings whose every location is outside the US ("London, UK"); unknown location text such as "Multiple Locations" is kept.
 3. Drop duplicates. First match on the Greenhouse or Lever job ID, taken from the board data or from a Simplify apply link. Without an ID, match on company, title and location.
 4. Pull descriptions for Simplify postings with a Greenhouse or Lever apply link.
 5. Run the **posting tagger** once on each *new* posting.
