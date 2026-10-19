@@ -1,12 +1,21 @@
-from contextlib import closing
+from contextlib import asynccontextmanager, closing
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import db, taxonomy
 from app.config import settings
+from app.ingest import scheduler
 
-app = FastAPI(title="InternMatch")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    jobs = scheduler.start()
+    yield
+    jobs.shutdown(wait=False)
+
+
+app = FastAPI(title="InternMatch", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -29,3 +38,10 @@ def meta():
         "terms": list(taxonomy.SUPPORTED_TERMS),
         "last_ingest": last_ingest,
     }
+
+
+if settings.enable_admin_routes:
+
+    @app.post("/api/ingest")
+    async def ingest():
+        return {"status": "started" if scheduler.start_in_background() else "already running"}

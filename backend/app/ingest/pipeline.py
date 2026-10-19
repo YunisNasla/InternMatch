@@ -104,6 +104,7 @@ async def run(
         [(c["name"], c["industry"], c["ats"], c["board"]) for c in companies],
     )
     conn.executemany("INSERT OR IGNORE INTO companies (name) VALUES (?)", [(p.company,) for p in postings])
+    conn.commit()  # no write transaction stays open while the company tagger waits on the API
     if llm:
         untagged = {r[0] for r in conn.execute("SELECT name FROM companies WHERE industry IS NULL")}
         titles: dict[str, list[str]] = {}
