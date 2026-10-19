@@ -7,8 +7,8 @@ import pytest
 from app.llm import PROMPTS_DIR
 from app.resume.extract import MAX_BYTES, extract_text
 from app.resume.parser import parse_resume
+from tests.fakes import FakeClaude
 from tests.fixtures.make_resumes import make_pdf
-from tests.test_llm_and_taggers import FakeClaude
 
 RESUMES = Path(__file__).parent / "fixtures/resumes"
 

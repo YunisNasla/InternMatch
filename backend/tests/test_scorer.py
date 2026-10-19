@@ -6,7 +6,7 @@ import pytest
 from app import db, llm
 from app.matching import cache, scorer
 from app.schemas import Profile, ScoreResult
-from tests.test_llm_and_taggers import FakeClaude
+from tests.fakes import FakeClaude
 
 PROFILE = Profile(is_stem=True, class_standing="junior", location={"city": "Zzyzx", "state": "CA"},
                   skills={"programming_languages": ["C"]})
@@ -39,7 +39,7 @@ def test_tier_follows_score_and_lists_are_capped():
 
 
 def test_cache_key_includes_emphasis_and_version(tmp_path):
-    conn = db.connect(tmp_path / "t.db")
+    conn = db.connect()
     cache.put(conn, "h", "job", None, "v1", ScoreResult(**GOOD))
     assert cache.get(conn, "h", "job", None, "v1") is not None
     assert cache.get(conn, "h", "job", "controls work", "v1") is None
@@ -48,7 +48,7 @@ def test_cache_key_includes_emphasis_and_version(tmp_path):
 
 
 async def test_scorer_never_sends_location_and_uses_the_cache(tmp_path):
-    conn = db.connect(tmp_path / "t.db")
+    conn = db.connect()
     fake = FakeClaude(lambda system, user, n: json.dumps(GOOD))
     results, unscored = await scorer.score(fake, conn, PROFILE, [ROW], None)
     assert results[ROW["id"]].fit_score == 88 and unscored == []
@@ -61,7 +61,7 @@ async def test_scorer_never_sends_location_and_uses_the_cache(tmp_path):
 
 
 async def test_emphasis_reaches_the_prompt_and_rescores(tmp_path):
-    conn = db.connect(tmp_path / "t.db")
+    conn = db.connect()
     fake = FakeClaude(lambda system, user, n: json.dumps(GOOD))
     await scorer.score(fake, conn, PROFILE, [ROW], None)
     await scorer.score(fake, conn, PROFILE, [ROW], "hands-on controls work")
@@ -70,7 +70,7 @@ async def test_emphasis_reaches_the_prompt_and_rescores(tmp_path):
 
 
 async def test_failed_call_falls_back_to_any_cached_score_else_unscored(tmp_path):
-    conn = db.connect(tmp_path / "t.db")
+    conn = db.connect()
     await scorer.score(FakeClaude(lambda *a: json.dumps(GOOD)), conn, PROFILE, [ROW], None)
     broken = FakeClaude(lambda *a: "not json")
     results, unscored = await scorer.score(broken, conn, PROFILE, [ROW], "new emphasis")

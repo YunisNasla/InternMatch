@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.llm import PROMPTS_DIR
 from app.main import app, get_llm
-from tests.test_llm_and_taggers import FakeClaude
+from tests.fakes import FakeClaude
 
 RESUME = Path(__file__).parent / "fixtures/resumes/me_diego_ramirez.pdf"
 PARSED = json.loads((PROMPTS_DIR / "parser_examples.json").read_text())[1]["assistant"]  # the Long Beach ME student
@@ -107,3 +107,52 @@ def test_refine_applies_emphasis_and_the_next_search_rescores(client):
 def test_refine_rejects_an_empty_message(client):
     http, _ = client
     assert http.post("/api/refine", json={"filters": {}, "message": ""}).status_code == 422
+
+
+def test_city_check(client):
+    http, _ = client
+    assert http.get("/api/city", params={"q": "Pomona, CA"}).json() == {"found": True}
+    assert http.get("/api/city", params={"q": "Pamona, CA"}).json() == {"found": False}
+
+
+def test_search_and_parse_say_whether_the_home_city_was_found(client):
+    http, fake = client
+    from tests.test_scorer import GOOD
+    seed_postings()
+    fake.answer = lambda system, user, n: json.dumps(GOOD)
+    profile = json.loads(PARSED)
+    found = http.post("/api/search", json={"profile": profile, "filters": {"home_city": "Pomona, CA"}}).json()
+    missing = http.post("/api/search", json={"profile": profile, "filters": {"home_city": "Pamona, CA"}}).json()
+    assert found["home_city_found"] is True and missing["home_city_found"] is False
+
+
+def test_oversized_upload_is_refused_before_it_is_read(client):
+    http, fake = client
+    body = b"x" * (6 * 1024 * 1024)
+    response = http.post("/api/parse", content=body, headers={"content-type": "multipart/form-data; boundary=b"})
+    assert response.status_code == 413 and fake.calls == []
+
+
+def test_search_rejects_an_oversized_profile(client):
+    http, _ = client
+    profile = json.loads(PARSED) | {"coursework": ["x" * 30_000]}
+    assert http.post("/api/search", json={"profile": profile, "filters": {}}).status_code == 422
+
+
+def test_also_open_is_capped_with_a_total(client):
+    http, fake = client
+    from contextlib import closing
+
+    from app import db
+    with closing(db.connect()) as conn:
+        for i in range(60):
+            conn.execute(
+                "INSERT INTO postings (id, source, company, title, locations, terms, url, posted_at, date_kind, "
+                "description, has_description, role_type, work_arrangement, active, sources, first_seen, last_seen) "
+                "VALUES (?, 'simplify', 'Acme', 'Intern', '[]', ?, 'https://x', NULL, 'unknown', NULL, 0, 'software', "
+                "'not_stated', 1, '[]', 'x', 'x')",
+                (f"simplify:{i}", json.dumps(["Summer 2027"])),
+            )
+        conn.commit()
+    body = http.post("/api/search", json={"profile": json.loads(PARSED), "filters": {}}).json()
+    assert len(body["also_open"]) == 50 and body["also_open_total"] == 60 and fake.calls == []

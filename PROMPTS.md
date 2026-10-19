@@ -234,7 +234,7 @@ Output ONLY this JSON, fields in this order:
 
 ### Filling the variables
 
-- **`{recruiter_domain}`:** built from the posting's role type and industry tags. Use the role type label plus the industry, for example "embedded firmware roles in the space industry" or "biology lab roles at biotech and pharma companies." If the industry is `other`, use just the role type label, for example "software roles."
+- **`{recruiter_domain}`:** built from the posting's role type and industry tags. Use the role type label plus the industry, for example "embedded firmware roles at space companies" or "biology lab roles at biotech and pharma companies." If the industry is `other` or untagged, use just the role type label, for example "software roles." An untagged posting uses "STEM intern roles."
   - The persona shifts to match each job, which is a nice detail to point out in the presentation. It stays technical because every role type is STEM.
 - **`{emphasis_block}`:** empty by default. When the filter state has an `emphasis`, fill it with the text of `scorer_emphasis.txt`: `The candidate asked you to give extra weight to: {emphasis}.`
 - **`{description_text}`:** strip the HTML and cut to about 6,000 characters.

@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import sqlite3
+from contextlib import closing
 from datetime import UTC, datetime
 
 import anthropic
@@ -33,9 +34,8 @@ def _now() -> str:
 
 
 async def run(
-    conn: sqlite3.Connection, client: httpx.AsyncClient, companies: list[dict], llm: anthropic.AsyncAnthropic | None,
+    conn: sqlite3.Connection, client: httpx.AsyncClient, companies: list[dict], llm: anthropic.AsyncAnthropic,
 ) -> dict:
-    """One ingest run. With llm=None nothing is tagged, which tests use."""
     started = _now()
     run_id = conn.execute("INSERT INTO ingest_runs (started_at) VALUES (?)", (started,)).lastrowid
     conn.commit()
@@ -52,6 +52,7 @@ async def run(
     results = dict(zip(pulls, await asyncio.gather(*(limited(p) for p in pulls.values()), return_exceptions=True)))
     ok_feeds = {feed for feed, r in results.items() if not isinstance(r, BaseException)}
     errors = {feed: type(r).__name__ for feed, r in results.items() if isinstance(r, BaseException)}
+    tag_failures = 0
 
     # 2. Internships only on boards, read their terms, keep supported terms plus unknown, drop non-US jobs.
     postings = []
@@ -78,23 +79,30 @@ async def run(
     for p, result in zip(need, fetched):
         if not isinstance(result, BaseException):
             p.description, p.lever_workplace = result
+    # A posting whose tag call failed last run is tagged again from its stored description, not just its title.
+    retry = {r[0]: (r[1], r[2]) for r in conn.execute(
+        "SELECT id, description, lever_workplace FROM postings WHERE role_type IS NULL AND has_description = 1"
+    )}
+    for p in postings:
+        if p.id in retry and not p.description:
+            p.description, p.lever_workplace = retry[p.id]
 
     # 5. Tag each new posting once. non_stem postings are dropped for good; failed calls retry next run.
     tagged = {r[0] for r in conn.execute("SELECT id FROM postings WHERE role_type IS NOT NULL")}
     tags: dict[str, object] = {}
-    if llm:
-        new = [p for p in postings if p.id not in tagged]
-        results = await asyncio.gather(*(limited(taggers.tag_posting(llm, p)) for p in new), return_exceptions=True)
-        for p, result in zip(new, results):
-            if isinstance(result, LLMError | anthropic.APIError):
-                errors[p.id] = type(result).__name__
-            elif isinstance(result, BaseException):
-                raise result
-            else:
-                tags[p.id] = result
-        non_stem = {pid for pid, t in tags.items() if t.role_type == "non_stem"}
-        conn.executemany("INSERT OR IGNORE INTO dropped (id) VALUES (?)", [(pid,) for pid in non_stem])
-        postings = [p for p in postings if p.id not in non_stem]
+    new = [p for p in postings if p.id not in tagged]
+    results = await asyncio.gather(*(limited(taggers.tag_posting(llm, p)) for p in new), return_exceptions=True)
+    for p, result in zip(new, results):
+        if isinstance(result, LLMError | anthropic.APIError):
+            errors[p.id] = type(result).__name__
+            tag_failures += 1
+        elif isinstance(result, BaseException):
+            raise result
+        else:
+            tags[p.id] = result
+    non_stem = {pid for pid, t in tags.items() if t.role_type == "non_stem"}
+    conn.executemany("INSERT OR IGNORE INTO dropped (id) VALUES (?)", [(pid,) for pid in non_stem])
+    postings = [p for p in postings if p.id not in non_stem]
 
     # 6. Seed companies take their list's industry; other new companies are tagged once.
     conn.executemany(
@@ -105,25 +113,25 @@ async def run(
     )
     conn.executemany("INSERT OR IGNORE INTO companies (name) VALUES (?)", [(p.company,) for p in postings])
     conn.commit()  # no write transaction stays open while the company tagger waits on the API
-    if llm:
-        untagged = {r[0] for r in conn.execute("SELECT name FROM companies WHERE industry IS NULL")}
-        titles: dict[str, list[str]] = {}
-        for p in postings:
-            if p.company in untagged:
-                titles.setdefault(p.company, []).append(p.title)
-        results = await asyncio.gather(
-            *(limited(taggers.tag_company(llm, name, t)) for name, t in titles.items()), return_exceptions=True,
-        )
-        for name, result in zip(titles, results):
-            if isinstance(result, LLMError | anthropic.APIError):
-                errors[f"company:{name}"] = type(result).__name__
-            elif isinstance(result, BaseException):
-                raise result
-            else:
-                conn.execute(
-                    "UPDATE companies SET industry = ?, industry_source = 'tagger', confidence = ? WHERE name = ?",
-                    (result.industry, result.confidence, name),
-                )
+    untagged = {r[0] for r in conn.execute("SELECT name FROM companies WHERE industry IS NULL")}
+    titles: dict[str, list[str]] = {}
+    for p in postings:
+        if p.company in untagged:
+            titles.setdefault(p.company, []).append(p.title)
+    results = await asyncio.gather(
+        *(limited(taggers.tag_company(llm, name, t)) for name, t in titles.items()), return_exceptions=True,
+    )
+    for name, result in zip(titles, results):
+        if isinstance(result, LLMError | anthropic.APIError):
+            errors[f"company:{name}"] = type(result).__name__
+            tag_failures += 1
+        elif isinstance(result, BaseException):
+            raise result
+        else:
+            conn.execute(
+                "UPDATE companies SET industry = ?, industry_source = 'tagger', confidence = ? WHERE name = ?",
+                (result.industry, result.confidence, name),
+            )
 
     # 7. Save. Existing rows keep first_seen, tags and every source they ever had.
     now = _now()
@@ -166,7 +174,8 @@ async def run(
     conn.executemany("UPDATE postings SET active = ?, last_seen = COALESCE(?, last_seen) WHERE id = ?", updates)
 
     counts = {
-        "feeds_ok": len(ok_feeds), "feeds_failed": len(errors), "kept": len(postings),
+        "feeds_ok": len(ok_feeds), "feeds_failed": len(pulls) - len(ok_feeds), "tag_failures": tag_failures,
+        "kept": len(postings),
         "descriptions_fetched": sum(1 for p in need if p.description), "tagged": len(tags),
         "active": conn.execute("SELECT COUNT(*) FROM postings WHERE active = 1").fetchone()[0],
     }
@@ -183,7 +192,8 @@ async def main() -> None:
     from app import db, llm
 
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
-        print(await run(db.connect(), client, load_companies(), llm.client()))
+        with closing(db.connect()) as conn:
+            print(await run(conn, client, load_companies(), llm.client()))
 
 
 if __name__ == "__main__":

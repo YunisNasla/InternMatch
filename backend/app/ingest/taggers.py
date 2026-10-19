@@ -3,11 +3,8 @@
 import anthropic
 
 from app.ingest.rules import RawPosting
-from app.llm import HAIKU, call_json, load_prompt
+from app.llm import HAIKU, MAX_DESCRIPTION, call_json, load_prompt
 from app.schemas import CompanyTagResult, TagResult
-
-# shortcut: descriptions are cut to 6,000 characters like the scorer's; raise it if tags miss late requirements.
-MAX_DESCRIPTION = 6000
 
 
 async def tag_posting(llm: anthropic.AsyncAnthropic, p: RawPosting) -> TagResult:

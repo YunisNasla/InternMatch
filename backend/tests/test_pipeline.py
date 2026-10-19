@@ -4,6 +4,7 @@ import httpx
 
 from app import db
 from app.ingest import feeds, pipeline
+from tests.fakes import FakeClaude, tag_as_software
 
 ACME = [{"name": "Acme Space", "ats": "greenhouse", "board": "acme", "industry": "space"}]
 
@@ -51,9 +52,9 @@ def transport(board_up=True):
     return httpx.MockTransport(handler)
 
 
-async def ingest(conn, board_up=True, companies=ACME, llm=None):
+async def ingest(conn, board_up=True, companies=ACME):
     async with httpx.AsyncClient(transport=transport(board_up)) as client:
-        return await pipeline.run(conn, client, companies, llm)
+        return await pipeline.run(conn, client, companies, FakeClaude(tag_as_software))
 
 
 def rows(conn):
@@ -61,7 +62,7 @@ def rows(conn):
 
 
 async def test_first_run_merges_fetches_and_filters(tmp_path):
-    conn = db.connect(tmp_path / "t.db")
+    conn = db.connect()
     counts = await ingest(conn)
     postings = rows(conn)
 
@@ -80,7 +81,7 @@ async def test_first_run_merges_fetches_and_filters(tmp_path):
 
 
 async def test_failed_board_leaves_postings_open_and_dropped_board_closes_them(tmp_path):
-    conn = db.connect(tmp_path / "t.db")
+    conn = db.connect()
     await ingest(conn)
     SIMPLIFY_ROWS[0]["active"] = False  # Simplify closes the Acme job
     try:
@@ -93,7 +94,7 @@ async def test_failed_board_leaves_postings_open_and_dropped_board_closes_them(t
 
 
 async def test_board_company_name_replaces_the_simplify_name_on_merge(tmp_path):
-    conn = db.connect(tmp_path / "t.db")
+    conn = db.connect()
     SIMPLIFY_ROWS[0]["company_name"] = "Acme"  # Simplify's spelling differs from the seed list's
     try:
         await ingest(conn, companies=[])  # first seen on Simplify only

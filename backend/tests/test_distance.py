@@ -71,3 +71,8 @@ def test_places_finds_every_city_in_a_multi_location_string(text, count):
 def test_multi_location_string_passes_when_one_city_is_in_range():
     location = "Atlanta, Georgia, United States; Irvine, California, United States"
     assert distance.check([location], "in_person", "Pomona, CA", 30) == "pass"
+
+
+def test_cities_named_like_states_count_in_multi_location_strings():
+    assert len(distance.places("New York, NY; Austin, TX")) == 2
+    assert len(distance.places("Washington, DC / Seattle, WA")) == 2

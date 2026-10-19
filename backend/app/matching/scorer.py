@@ -6,13 +6,12 @@ import sqlite3
 
 import anthropic
 
-from app.llm import HAIKU, LLMError, call_json, load_prompt
+from app.llm import HAIKU, MAX_DESCRIPTION, LLMError, call_json, load_prompt
 from app.matching import cache
 from app.schemas import Profile, ScoreResult
 from app.taxonomy import recruiter_domain
 
 log = logging.getLogger(__name__)
-MAX_DESCRIPTION = 6000
 PARALLEL = 20  # a whole first page at once: each call takes about 15 s
 
 

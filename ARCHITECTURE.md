@@ -175,7 +175,7 @@ Both taggers use `claude-haiku-5-5` at effort `low`. Their prompts are in [PROMP
 
 ## Location and distance
 
-Distance is city to city. The user's home city and each posting's locations are looked up in a free offline US cities file with latitude and longitude (for example, the SimpleMaps basic US cities CSV). Distance is computed with the haversine formula, with no API calls.
+Distance is city to city. The user's home city and each posting's locations are looked up in a free offline US cities file with latitude and longitude (`backend/data/us_cities.csv`, built from the public-domain US Census Gazetteer places file by `backend/scripts/build_cities.py`). One location string can name several cities ("Atlanta, GA; Irvine, CA"); each one counts. Distance is computed with the haversine formula, with no API calls.
 
 - **Aliases:** a small alias table maps common short names (LA, SF, NYC, Bay Area, DC and similar) to a city in the file. It is used for both home cities and posting locations.
 - **Home city check:** `home_city` is looked up whenever it changes. If it can't be found, page 2 shows "City not found". In the chat, code drops the change. If no change was applied after validation, code replaces the reply with a fixed sentence; otherwise it adds the sentence to the reply: `I couldn't find {city}, so your home city didn't change. Try 'City, ST'.` While the home city is empty or can't be found (for example, a resume with no city, or a city missing from the file), the distance check is skipped and the "City not found" note stays visible. An unknown home city never silently hides results.
@@ -239,7 +239,7 @@ These tables cover everything above. Adjust freely during the build.
 
 | Table | Key columns |
 | --- | --- |
-| `postings` | `id`, `source` (simplify, greenhouse, lever), `sources` (JSON: every feed that has ever listed it, only added to), `company`, `title`, `locations` (JSON), `terms` (JSON), `url`, `ats_job_id`, `posted_at`, `date_kind` (posted, updated, unknown), `description`, `has_description`, `role_type`, `work_arrangement`, `active`, `first_seen`, `last_seen` |
+| `postings` | `id`, `source` (simplify, greenhouse, lever), `sources` (JSON: every feed that has ever listed it, only added to), `company`, `title`, `locations` (JSON), `terms` (JSON), `url`, `ats_job_id`, `posted_at`, `date_kind` (posted, updated, unknown), `description`, `has_description`, `lever_workplace` (so a posting whose tag call failed can be retagged from its stored data), `role_type`, `work_arrangement`, `active`, `first_seen`, `last_seen` |
 | `companies` | `name`, `industry`, `industry_source` (seed_list or tagger), `confidence`, `ats`, `board` |
 | `scores` | `profile_hash`, `job_id`, `emphasis`, `prompt_version`, `result_json`, `created_at` |
 | `ingest_runs` | `started_at`, `finished_at`, counts per source, error notes |
@@ -248,9 +248,10 @@ These tables cover everything above. Adjust freely during the build.
 
 | Endpoint | Input | Output |
 | --- | --- | --- |
-| `POST /api/parse` | Resume file (multipart, PDF or DOCX, up to 5 MB) + optional free text | `profile`, starting `filters`, Prompt 4 `reply`, `is_stem`. Runs Prompt 1, builds the default filters from `suggested_role_types` and city, then runs Prompt 4 in initial mode. Prompt 4 is skipped when the free text is empty, and `reply` is then empty. |
-| `POST /api/search` | `profile`, `filters`, `offset` | Scored cards, "Also open" list, hidden-location count, `has_more`, and the postings it couldn't score |
-| `POST /api/refine` | `filters`, `message`, results summary, recent turns | `intent`, applied `changes`, `reply`, updated `filters` |
+| `POST /api/parse` | Resume file (multipart, PDF or DOCX, up to 5 MB, refused with 413 before upload when larger) + optional free text | `profile`, starting `filters`, Prompt 4 `reply`, `is_stem`, `home_city_found`. Runs Prompt 1, builds the default filters from `suggested_role_types` and city, then runs Prompt 4 in initial mode. Prompt 4 is skipped when the free text is empty, and `reply` is then empty. |
+| `POST /api/search` | `profile`, `filters`, `offset` | Scored cards, the 50 newest "Also open" postings plus `also_open_total`, hidden-location count, `has_more`, `home_city_found`, and the postings it couldn't score |
+| `POST /api/refine` | `filters`, `message`, results summary, recent turns | `intent`, applied `changes`, `dropped` changes, `reply`, updated `filters` |
+| `GET /api/city?q=` | A city as "City, ST" | `found`: whether the cities file has it, for page 2's "City not found" |
 | `GET /api/meta` | None | Taxonomy lists and labels, supported terms, last ingest time |
 | `POST /api/ingest` | None | Triggers an ingest run. Exists only when `ENABLE_ADMIN_ROUTES=true` (default false). |
 

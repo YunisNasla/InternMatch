@@ -72,7 +72,7 @@ def places(text: str) -> list[Point]:
     found = []
     for city, state in itertools.pairwise(tokens):  # a city is the token right before a state
         code = _state_code(state)
-        if code and city and not _state_code(city) and (point := _cities().get((city, code))):
+        if code and city and (point := _cities().get((city, code))):
             found.append(point)
     return found or [p for p in [lookup(text)] if p]  # aliases like "LA" or "SF Bay Area"
 

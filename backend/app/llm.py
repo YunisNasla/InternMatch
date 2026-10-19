@@ -14,6 +14,8 @@ from app.config import settings
 log = logging.getLogger(__name__)
 PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
 HAIKU = "claude-haiku-5-5"
+# shortcut: posting text sent to the taggers and the scorer is cut here; raise it if late requirements get missed.
+MAX_DESCRIPTION = 6000
 SONNET = "claude-sonnet-5-5"
 
 TAXONOMY_VARS = {
@@ -38,8 +40,14 @@ def load_prompt(name: str, **values: str) -> str:
     return _PLACEHOLDER.sub(lambda m: values.get(m[1], m[0]), text)
 
 
+def load_examples(name: str) -> list[tuple[str, str]]:
+    """Few-shot examples as (user, assistant) pairs."""
+    return [(e["user"], e["assistant"]) for e in json.loads((PROMPTS_DIR / name).read_text())]
+
+
 def client() -> anthropic.AsyncAnthropic:
-    return anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key or None)
+    # The SDK default waits 10 minutes per try; a stuck call must fail fast so search can fall back to the cache.
+    return anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key or None, timeout=60, max_retries=1)
 
 
 async def call_json[T: BaseModel](

@@ -7,6 +7,9 @@ import docx
 import pdfplumber
 
 MAX_BYTES = 5 * 1024 * 1024
+# shortcut: resumes are 1 to 2 pages; these caps stop a huge PDF from stalling the server or the parser call.
+MAX_PAGES = 6
+MAX_CHARS = 30_000
 
 
 def extract_text(filename: str, data: bytes) -> str:
@@ -17,7 +20,7 @@ def extract_text(filename: str, data: bytes) -> str:
     try:
         if suffix == ".pdf" and data.startswith(b"%PDF"):
             with pdfplumber.open(io.BytesIO(data)) as pdf:
-                text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+                text = "\n".join(page.extract_text() or "" for page in pdf.pages[:MAX_PAGES])
         elif suffix == ".docx" and data.startswith(b"PK"):
             document = docx.Document(io.BytesIO(data))
             cells = (cell.text for table in document.tables for row in table.rows for cell in row.cells)
@@ -30,4 +33,4 @@ def extract_text(filename: str, data: bytes) -> str:
         raise ValueError("We couldn't open that file. Try saving it again as a PDF.") from error
     if not text.strip():
         raise ValueError("We couldn't find any text in that file. If it's a scanned image, upload a text-based PDF.")
-    return text.strip()
+    return text.strip()[:MAX_CHARS]

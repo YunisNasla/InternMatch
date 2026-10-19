@@ -83,7 +83,7 @@ class FilterState(BaseModel):
     industries: list[Industry] = []  # empty means all
     role_types: list[RoleType] = []  # empty means all
     home_city: ShortText | None = None
-    max_distance_miles: float | None = Field(default=None, gt=0)
+    max_distance_miles: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     work_arrangements: list[Literal["in_person", "hybrid", "remote"]] = Field(
         default=["in_person", "hybrid", "remote"], min_length=1,
     )

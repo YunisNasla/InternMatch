@@ -1,5 +1,4 @@
 import sqlite3
-from pathlib import Path
 
 from app.config import settings
 
@@ -54,8 +53,8 @@ CREATE TABLE IF NOT EXISTS dropped (id TEXT PRIMARY KEY);
 """
 
 
-def connect(path: Path | None = None) -> sqlite3.Connection:
-    path = path or settings.db_file
+def connect() -> sqlite3.Connection:
+    path = settings.db_file
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row

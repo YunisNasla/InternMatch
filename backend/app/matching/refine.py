@@ -1,11 +1,9 @@
 """Prompt 4 (iterative refinement): the model proposes filter changes, code checks and applies them."""
 
-import json
-
 import anthropic
 from pydantic import ValidationError
 
-from app.llm import PROMPTS_DIR, SONNET, call_json, load_prompt
+from app.llm import SONNET, call_json, load_examples, load_prompt
 from app.matching import distance
 from app.schemas import REFINE_FIELDS, FilterState, RefineChange, RefineResult
 
@@ -69,13 +67,13 @@ async def refine(
     llm: anthropic.AsyncAnthropic, mode: str, state: FilterState, message: str,
     results_summary: str = "", recent_turns: str = "",
 ) -> dict:
-    examples = [(e["user"], e["assistant"]) for e in json.loads((PROMPTS_DIR / "refine_examples.json").read_text())]
     user = load_prompt(
         "refine_user.txt", mode=mode, filter_state_json=state.model_dump_json(indent=2),
         results_summary=results_summary, recent_turns=recent_turns, user_message=message,
     )
     result = await call_json(
-        llm, SONNET, load_prompt("refine_system.txt"), user, RefineResult, label=f"refine:{mode}", examples=examples,
+        llm, SONNET, load_prompt("refine_system.txt"), user, RefineResult, label=f"refine:{mode}",
+        examples=load_examples("refine_examples.json"),
     )
     new_state, applied, dropped, missing_city = apply_changes(state, result.changes, mode)
     return {
