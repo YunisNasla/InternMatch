@@ -1,6 +1,7 @@
 """City-to-city distance from the offline Census cities file (ARCHITECTURE.md "Location and distance")."""
 
 import csv
+import itertools
 import math
 import re
 import unicodedata
@@ -56,9 +57,24 @@ def lookup(text: str | None) -> Point | None:
     key = _COUNTRY_SUFFIX.sub("", _norm(_PAREN.sub("", text))).strip(" ,")
     key = _norm(ALIASES.get(key, key))
     *places, state = [p.strip() for p in key.split(",")]
-    state = state.upper() if state.upper() in CODES else STATES.get(state)
+    state = _state_code(state)
     # "La Jolla, San Diego, CA": either place name may be the one the file knows.
     return next((pt for place in places if state and (pt := _cities().get((place, state)))), None)
+
+
+def _state_code(token: str) -> str | None:
+    return token.upper() if token.upper() in CODES else STATES.get(token)
+
+
+def places(text: str) -> list[Point]:
+    """Every city in one location string. Boards pack several into one: "Atlanta, Georgia; Irvine, CA/Austin, TX"."""
+    tokens = [_norm(t) for t in re.split(r"[;,/]|\bor\b", _PAREN.sub("", text))]
+    found = []
+    for city, state in itertools.pairwise(tokens):  # a city is the token right before a state
+        code = _state_code(state)
+        if code and city and not _state_code(city) and (point := _cities().get((city, code))):
+            found.append(point)
+    return found or [p for p in [lookup(text)] if p]  # aliases like "LA" or "SF Bay Area"
 
 
 def haversine_miles(a: Point, b: Point) -> float:
@@ -72,7 +88,7 @@ def check(locations: list[str], arrangement: str, home: str | None, max_miles: f
     home_point = lookup(home)
     if max_miles is None or home_point is None or arrangement == "remote":
         return "pass"
-    points = [p for p in map(lookup, locations) if p]
+    points = [p for location in locations for p in places(location)]
     if not points:
         return "unplaceable"
     return "pass" if any(haversine_miles(home_point, p) <= max_miles for p in points) else "fail"

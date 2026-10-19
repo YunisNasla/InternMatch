@@ -50,3 +50,24 @@ HOME = "Pomona, CA"
 )
 def test_check(locations, arrangement, home, max_miles, expected):
     assert distance.check(locations, arrangement, home, max_miles) == expected
+
+
+@pytest.mark.parametrize(
+    "text, count",
+    [
+        ("Atlanta, Georgia, United States; Boston, Massachusetts, United States; Irvine, California, United States", 3),
+        ("Alameda, CA, Albuquerque, NM, Oak Ridge, TN", 3),
+        ("San Leandro, CA/Fremont, CA or Los Lunas, NM", 3),
+        ("Santa Clara, CA or Any Office Location", 1),
+        ("Los Angeles, CA", 1),
+        ("LA", 1),
+        ("Remote in USA", 0),
+    ],
+)
+def test_places_finds_every_city_in_a_multi_location_string(text, count):
+    assert len(distance.places(text)) == count
+
+
+def test_multi_location_string_passes_when_one_city_is_in_range():
+    location = "Atlanta, Georgia, United States; Irvine, California, United States"
+    assert distance.check([location], "in_person", "Pomona, CA", 30) == "pass"
