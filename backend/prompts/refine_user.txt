@@ -1,0 +1,17 @@
+<mode>{mode}</mode>
+
+<filter_state>
+{filter_state_json}
+</filter_state>
+
+<results_summary>
+{results_summary}
+</results_summary>
+
+<recent_turns>
+{recent_turns}
+</recent_turns>
+
+<message>
+{user_message}
+</message>
