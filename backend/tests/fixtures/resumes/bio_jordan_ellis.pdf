@@ -1,0 +1,32 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 1029 >>
+stream
+BT /F1 9 Tf 40 760 Td 13 TL (Jordan Ellis | Boston, Massachusetts | jordan.ellis@example.com) Tj T* (Northeastern University, B.S. Biology \(Concentration: Cell and Molecular\), Expected May 2027, GPA 3.6) Tj T* (LAB SKILLS: PCR, qPCR, Western blot, ELISA, mammalian cell culture, flow cytometry, aseptic technique) Tj T* (COMPUTER: R, Python \(pandas\), GraphPad Prism, ImageJ, Benchling) Tj T* (EXPERIENCE) Tj T* (Research Co-op, Bayview Therapeutics \(Jan 2026 - Jun 2026\)) Tj T* (- Ran ELISA and Western blot assays on about 200 samples for an antibody screening program) Tj T* (- Kept cell lines for 3 projects and wrote 4 SOPs for the team) Tj T* (Undergraduate Research Assistant, Northeastern Immunology Lab \(Sep 2024 - Dec 2025\)) Tj T* (- Stained T cells and ran flow cytometry to measure activation markers) Tj T* (PROJECTS) Tj T* (Senior capstone: CRISPR knockout of a stress-response gene in yeast, measured by qPCR) Tj T* (Coursework: Molecular Biology, Immunology, Biochemistry, Genetics, Biostatistics) Tj T* ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1392
+%%EOF

@@ -1,0 +1,32 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 982 >>
+stream
+BT /F1 9 Tf 40 760 Td 13 TL (Priya Nair) Tj T* (1200 Guadalupe St, Apt 4B, Austin, TX 78701 | priya.nair@example.com) Tj T* (The University of Texas at Austin, B.S. Electrical and Computer Engineering, Expected 12/2027, GPA 3.8) Tj T* (Technical skills: C, C++, Verilog, Python, MATLAB, Altium Designer, oscilloscope, logic analyzer, soldering) Tj T* (Experience) Tj T* (Embedded Systems Intern, Lonestar Avionics \(May 2025 - Aug 2025\)) Tj T* (- Wrote STM32 firmware in C for a flight sensor board, sampling an IMU at 1 kHz) Tj T* (- Brought up a new 4-layer PCB and fixed two power rail faults with the oscilloscope) Tj T* (Undergraduate Researcher, UT Power Electronics Lab \(Sep 2025 - present\)) Tj T* (- Simulate GaN buck converters in LTspice and measure efficiency on the bench) Tj T* (Projects) Tj T* (FPGA audio equalizer in Verilog on a Basys 3 board) Tj T* (Coursework: Digital Logic, Embedded Systems, Signals and Systems, Power Electronics, Electromagnetics) Tj T* ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1344
+%%EOF

@@ -1,0 +1,32 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 983 >>
+stream
+BT /F1 9 Tf 40 760 Td 13 TL (Maya Chen | San Jose, CA | maya.chen@example.com) Tj T* (San Jose State University, B.S. Computer Science, Expected May 2028, GPA 3.7) Tj T* (Skills: Python, TypeScript, Go, SQL, React, Node.js, Docker, AWS Lambda, PostgreSQL, Git) Tj T* (Experience) Tj T* (Software Engineering Intern, Harborline Payments \(Jun 2025 - Aug 2025\)) Tj T* (- Built a fraud-alert microservice in Go that handled 2,000 requests per second) Tj T* (- Cut CI build time from 14 to 6 minutes by caching Docker layers) Tj T* (Teaching Assistant, SJSU Data Structures \(Jan 2026 - present\)) Tj T* (- Run weekly labs for 45 students on trees, graphs and hashing) Tj T* (Projects) Tj T* (Campus Eats: React + Node app for ordering from campus food trucks, 600 monthly users) Tj T* (Tiny Raft: a Raft consensus implementation in Go with leader election and log replication) Tj T* (Coursework: Operating Systems, Distributed Systems, Algorithms, Databases, Machine Learning) Tj T* ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1345
+%%EOF

@@ -44,10 +44,16 @@ def client() -> anthropic.AsyncAnthropic:
 
 async def call_json[T: BaseModel](
     llm: anthropic.AsyncAnthropic, model: str, system: str, user: str, schema: type[T],
-    *, label: str, effort: str | None = None, max_tokens: int = 4000,
+    *, label: str, effort: str | None = None, max_tokens: int = 4000, examples: list[tuple[str, str]] = (),
 ) -> T:
-    """One call validated against `schema`, retried once with the error appended. `label` is logged, never content."""
-    messages: list[dict] = [{"role": "user", "content": user}]
+    """One call validated against `schema`, retried once with the error appended. `label` is logged, never content.
+
+    Few-shot `examples` go first as alternating user and assistant turns (PROMPTS.md rules for every call).
+    """
+    messages: list[dict] = [
+        {"role": role, "content": text} for pair in examples for role, text in zip(("user", "assistant"), pair)
+    ]
+    messages.append({"role": "user", "content": user})
     extra = {"output_config": {"effort": effort}} if effort else {}
     for attempt in (1, 2):
         response = await llm.messages.create(model=model, system=system, messages=messages, max_tokens=max_tokens, **extra)

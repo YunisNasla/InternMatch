@@ -1,0 +1,32 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 878 >>
+stream
+BT /F1 9 Tf 40 760 Td 13 TL (DIEGO RAMIREZ - Pomona, CA - diego.r@example.com) Tj T* (Cal Poly Pomona, Mechanical Engineering. Graduating Spring 2028. GPA 3.4) Tj T* (TOOLS: SolidWorks, Ansys Fluent, MATLAB, Python, GD&T, CNC mill, TIG welding, 3D printing) Tj T* (EXPERIENCE) Tj T* (Formula SAE, Powertrain Lead, Fall 2024 - present) Tj T* (- Designed an intake manifold in SolidWorks and validated airflow with Ansys Fluent CFD) Tj T* (- Machined throttle body parts on a CNC mill, cutting part cost by 30 percent) Tj T* (Manufacturing Intern, Pacific Valve Co \(Summer 2025\)) Tj T* (- Wrote work instructions for 12 assembly stations and reduced rework by 15 percent) Tj T* (PROJECTS) Tj T* (Thermoelectric cooler test stand: Arduino data logging, PID temperature control) Tj T* (Coursework: Thermodynamics, Heat Transfer, Machine Design, Fluid Mechanics, Controls) Tj T* ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1240
+%%EOF
