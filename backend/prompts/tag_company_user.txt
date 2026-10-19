@@ -1,0 +1,4 @@
+<company name="{company}">
+Sample posting titles:
+{sample_titles}
+</company>

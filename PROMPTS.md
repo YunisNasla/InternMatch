@@ -12,7 +12,7 @@ InternMatch makes six kinds of LLM calls. Four of them carry the graded prompt e
 
 **Rules for every call:**
 
-- Use `temperature=0`. The evaluation's consistency test is the one exception (see [Evaluation](#evaluation-proof-for-the-20-prompt-engineering-grade)).
+- Don't set `temperature`. Current Claude models fix their sampling: the SDK has no `temperature` argument, and Haiku 5.5 and Sonnet 5.5 reject non-default sampling. The taggers run at `output_config.effort="low"`; every other call uses the model's default effort.
 - Validate every output with a Pydantic model. On a validation failure, send one retry with the error appended, using the text of `retry.txt`: `Your last output failed: {error}. Return corrected JSON only.`
 - Every prompt below is stored as a plain text file in `backend/prompts/` and loaded at runtime, so there's one source of truth.
 - Few-shot examples are sent as alternating user and assistant messages, not pasted into the system prompt.
@@ -166,7 +166,6 @@ ASSISTANT:
 ### Implementation notes
 
 - Validate with Pydantic and allow one retry with the validation error appended. That small loop is worth mentioning in the presentation.
-- Use `temperature=0`, so the same resume always parses the same way.
 - If `is_stem` is false, page 2 shows: "InternMatch is built for STEM students, so results may be thin for your field." The user can still continue.
 - Show `parse_warnings` on page 2 as yellow notes, so the user knows what to double-check.
 - The profile JSON goes back to the browser. The server doesn't save it.
@@ -244,7 +243,7 @@ Output ONLY this JSON, fields in this order:
 ### Implementation notes
 
 - **Parallel calls:** run the 20 calls with `asyncio.gather` and a semaphore of about 5, so you stay under rate limits. "Score 10 more" runs the same way for the next batch.
-- **Settings and caching:** use `temperature=0`, and cache results by `(profile hash without location, job id, emphasis, prompt version)`. The prompt version is a short hash of `scorer_system.txt`, `scorer_user.txt`, `scorer_emphasis.txt`, the taxonomy labels used in `{recruiter_domain}` and the model name, so a prompt edit never serves old scores.
+- **Settings and caching:** cache results by `(profile hash without location, job id, emphasis, prompt version)`. The prompt version is a short hash of `scorer_system.txt`, `scorer_user.txt`, `scorer_emphasis.txt`, the taxonomy labels used in `{recruiter_domain}` and the model name, so a prompt edit never serves old scores.
 - **On each card:** show `fit_score`, `tier`, `top_matches`, `recruiter_note`, the posted or updated time, and the work arrangement.
 - **"Why this score":** expands into the requirements table, with green, yellow and red status dots. Any `needs_check` gate shows as a gray tag, not a penalty.
 - **Validation:** `tier` must match the `fit_score` band. If they disagree, trust `fit_score` and derive the tier from the rubric.
@@ -254,9 +253,9 @@ Output ONLY this JSON, fields in this order:
 | Test | How | What it shows |
 | --- | --- | --- |
 | Accuracy | Hand-label 10 postings for your own resume as strong, good, stretch or long shot. Score them with a bare "rate this resume for this job from 0 to 100" prompt and with this prompt, then count how many tiers match your labels. | Persona + CoT agrees with a human judgment more often |
-| Consistency | Score the same 10 postings 3 times with each prompt at the default temperature (1.0), and record how far the scores spread. | Persona + CoT gives steadier, repeatable scores |
+| Consistency | Score the same 10 postings 3 times with each prompt, and record how far the scores spread. | Persona + CoT gives steadier, repeatable scores |
 
-The accuracy test runs at `temperature=0`, like the app. The consistency test is the one exception to `temperature=0`: at 0 both prompts are nearly deterministic, so both spreads would be near zero and the test would show nothing. The evaluation script calls the model directly and skips the score cache.
+Both tests run the prompts exactly as the app does. Sampling can't be fixed on current models, so the consistency test measures the spread the app really has. The evaluation script calls the model directly and skips the score cache.
 
 Keep the labels and the evaluation script in `eval/`. One slide with both results is stronger evidence than describing the patterns.
 
@@ -394,7 +393,7 @@ In the real calls, each example's user turn carries the same tags as the real ca
 
 ## Ingest taggers
 
-Both taggers use `claude-haiku-5-5` at `temperature=0`. Each posting and each company is tagged once, and the result is cached in SQLite.
+Both taggers use `claude-haiku-5-5` at effort `low`. Each posting and each company is tagged once, and the result is cached in SQLite.
 
 ### Posting tagger: system prompt
 

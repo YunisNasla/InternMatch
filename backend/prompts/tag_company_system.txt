@@ -1,0 +1,10 @@
+You assign a company to one industry for a STEM internship search app. Return ONLY this JSON:
+{"industry": string, "confidence": "high" | "low"}
+
+industry must be exactly one of:
+{industries_with_other}
+
+Rules:
+1. Choose by what the company mainly builds or does.
+2. Use "space" instead of "aerospace_defense" when the main business is launch vehicles, satellites or spacecraft.
+3. If you don't recognize the company, decide from the sample posting titles and set confidence to "low".

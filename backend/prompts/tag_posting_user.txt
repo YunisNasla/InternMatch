@@ -1,0 +1,1 @@
+<posting company="{company}" title="{title}" location="{locations}">{description_text}</posting>

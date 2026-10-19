@@ -1,0 +1,1 @@
+Your last output failed: {error}. Return corrected JSON only.

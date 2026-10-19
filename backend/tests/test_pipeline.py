@@ -51,9 +51,9 @@ def transport(board_up=True):
     return httpx.MockTransport(handler)
 
 
-async def ingest(conn, board_up=True, companies=ACME):
+async def ingest(conn, board_up=True, companies=ACME, llm=None):
     async with httpx.AsyncClient(transport=transport(board_up)) as client:
-        return await pipeline.run(conn, client, companies)
+        return await pipeline.run(conn, client, companies, llm)
 
 
 def rows(conn):

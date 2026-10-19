@@ -171,7 +171,7 @@ The ingest job runs inside FastAPI using APScheduler, Monday to Friday every 6 h
    - Otherwise a feed failed, so leave the posting as it is. One network error never hides a posting.
    - Search only reads active postings.
 
-Both taggers use `claude-haiku-5-5` at `temperature=0`. Their prompts are in [PROMPTS.md](PROMPTS.md#ingest-taggers).
+Both taggers use `claude-haiku-5-5` at effort `low`. Their prompts are in [PROMPTS.md](PROMPTS.md#ingest-taggers).
 
 ## Location and distance
 
@@ -231,7 +231,7 @@ The last 3 rounds of messages and replies are sent with each refine call, so "ac
 | Validation | Pydantic models for every LLM output | One retry with the validation error on failure |
 | Storage | SQLite | Listings, tags and the score cache |
 
-Every LLM call in the app uses `temperature=0`. The evaluation's consistency test is the one exception (see [PROMPTS.md](PROMPTS.md#evaluation-proof-for-the-20-prompt-engineering-grade)).
+No call sets `temperature`. Current Claude models fix their sampling: the SDK has no `temperature` argument, and Haiku 5.5 and Sonnet 5.5 reject non-default sampling. The taggers run at effort `low`; the other calls use the model's default effort.
 
 ## Data model (starting proposal)
 

@@ -6,11 +6,13 @@ import logging
 import sqlite3
 from datetime import UTC, datetime
 
+import anthropic
 import httpx
 import yaml
 
 from app.config import REPO_ROOT
-from app.ingest import feeds, rules
+from app.ingest import feeds, rules, taggers
+from app.llm import LLMError
 from app.taxonomy import SUPPORTED_TERMS
 
 log = logging.getLogger(__name__)
@@ -30,7 +32,10 @@ def _now() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-async def run(conn: sqlite3.Connection, client: httpx.AsyncClient, companies: list[dict]) -> dict:
+async def run(
+    conn: sqlite3.Connection, client: httpx.AsyncClient, companies: list[dict], llm: anthropic.AsyncAnthropic | None,
+) -> dict:
+    """One ingest run. With llm=None nothing is tagged, which tests use."""
     started = _now()
     run_id = conn.execute("INSERT INTO ingest_runs (started_at) VALUES (?)", (started,)).lastrowid
     conn.commit()
@@ -74,7 +79,24 @@ async def run(conn: sqlite3.Connection, client: httpx.AsyncClient, companies: li
         if not isinstance(result, BaseException):
             p.description, p.lever_workplace = result
 
-    # 5 and 6 (taggers) arrive in build step 4. Seed companies take their list's industry.
+    # 5. Tag each new posting once. non_stem postings are dropped for good; failed calls retry next run.
+    tagged = {r[0] for r in conn.execute("SELECT id FROM postings WHERE role_type IS NOT NULL")}
+    tags: dict[str, object] = {}
+    if llm:
+        new = [p for p in postings if p.id not in tagged]
+        results = await asyncio.gather(*(limited(taggers.tag_posting(llm, p)) for p in new), return_exceptions=True)
+        for p, result in zip(new, results):
+            if isinstance(result, LLMError | anthropic.APIError):
+                errors[p.id] = type(result).__name__
+            elif isinstance(result, BaseException):
+                raise result
+            else:
+                tags[p.id] = result
+        non_stem = {pid for pid, t in tags.items() if t.role_type == "non_stem"}
+        conn.executemany("INSERT OR IGNORE INTO dropped (id) VALUES (?)", [(pid,) for pid in non_stem])
+        postings = [p for p in postings if p.id not in non_stem]
+
+    # 6. Seed companies take their list's industry; other new companies are tagged once.
     conn.executemany(
         "INSERT INTO companies (name, industry, industry_source, ats, board) VALUES (?, ?, 'seed_list', ?, ?) "
         "ON CONFLICT(name) DO UPDATE SET industry = excluded.industry, industry_source = 'seed_list', "
@@ -82,23 +104,50 @@ async def run(conn: sqlite3.Connection, client: httpx.AsyncClient, companies: li
         [(c["name"], c["industry"], c["ats"], c["board"]) for c in companies],
     )
     conn.executemany("INSERT OR IGNORE INTO companies (name) VALUES (?)", [(p.company,) for p in postings])
+    if llm:
+        untagged = {r[0] for r in conn.execute("SELECT name FROM companies WHERE industry IS NULL")}
+        titles: dict[str, list[str]] = {}
+        for p in postings:
+            if p.company in untagged:
+                titles.setdefault(p.company, []).append(p.title)
+        results = await asyncio.gather(
+            *(limited(taggers.tag_company(llm, name, t)) for name, t in titles.items()), return_exceptions=True,
+        )
+        for name, result in zip(titles, results):
+            if isinstance(result, LLMError | anthropic.APIError):
+                errors[f"company:{name}"] = type(result).__name__
+            elif isinstance(result, BaseException):
+                raise result
+            else:
+                conn.execute(
+                    "UPDATE companies SET industry = ?, industry_source = 'tagger', confidence = ? WHERE name = ?",
+                    (result.industry, result.confidence, name),
+                )
 
     # 7. Save. Existing rows keep first_seen, tags and every source they ever had.
     now = _now()
     stored = {r["id"]: set(json.loads(r["sources"])) for r in conn.execute("SELECT id, sources FROM postings")}
     conn.executemany(
         """INSERT INTO postings (id, source, company, title, locations, terms, url, ats_job_id, posted_at, date_kind,
-               description, has_description, lever_workplace, work_arrangement, active, sources, first_seen, last_seen)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+               description, has_description, lever_workplace, role_type, work_arrangement, active, sources, first_seen,
+               last_seen)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
            ON CONFLICT(id) DO UPDATE SET title = excluded.title, locations = excluded.locations,
                terms = excluded.terms, url = excluded.url, posted_at = excluded.posted_at,
                date_kind = excluded.date_kind, sources = excluded.sources,
                description = COALESCE(excluded.description, postings.description),
-               has_description = MAX(excluded.has_description, postings.has_description)""",
+               has_description = MAX(excluded.has_description, postings.has_description),
+               role_type = COALESCE(excluded.role_type, postings.role_type),
+               work_arrangement = CASE WHEN excluded.role_type IS NULL THEN postings.work_arrangement
+                                       ELSE excluded.work_arrangement END""",
         [
             (p.id, p.ats or "simplify", p.company, p.title, json.dumps(p.locations), json.dumps(p.terms), p.url,
              p.ats_job_id, p.posted_at, p.date_kind, p.description, int(bool(p.description)), p.lever_workplace,
-             rules.arrangement(p.lever_workplace, None, p.locations),
+             tags[p.id].role_type if p.id in tags else None,
+             # Title-only postings ignore the tagger's arrangement: it only saw the title.
+             rules.arrangement(
+                 p.lever_workplace, tags[p.id].work_arrangement if p.id in tags and p.description else None, p.locations,
+             ),
              json.dumps(sorted(stored.get(p.id, set()) | p.sources)), now, now)
             for p in postings
         ],
@@ -116,7 +165,7 @@ async def run(conn: sqlite3.Connection, client: httpx.AsyncClient, companies: li
 
     counts = {
         "feeds_ok": len(ok_feeds), "feeds_failed": len(errors), "kept": len(postings),
-        "descriptions_fetched": sum(1 for p in need if p.description),
+        "descriptions_fetched": sum(1 for p in need if p.description), "tagged": len(tags),
         "active": conn.execute("SELECT COUNT(*) FROM postings WHERE active = 1").fetchone()[0],
     }
     conn.execute(
@@ -129,10 +178,10 @@ async def run(conn: sqlite3.Connection, client: httpx.AsyncClient, companies: li
 
 
 async def main() -> None:
-    from app import db
+    from app import db, llm
 
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
-        print(await run(db.connect(), client, load_companies()))
+        print(await run(db.connect(), client, load_companies(), llm.client()))
 
 
 if __name__ == "__main__":
