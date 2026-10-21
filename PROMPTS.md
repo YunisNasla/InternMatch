@@ -250,14 +250,24 @@ Output ONLY this JSON, fields in this order:
 
 ### Evaluation (proof for the 20% prompt engineering grade)
 
-| Test | How | What it shows |
+| Test | How | Hypothesis |
 | --- | --- | --- |
-| Accuracy | Hand-label 10 postings for your own resume as strong, good, stretch or long shot. Score them with a bare "rate this resume for this job from 0 to 100" prompt and with this prompt, then count how many tiers match your labels. | Persona + CoT agrees with a human judgment more often |
-| Consistency | Score the same 10 postings 3 times with each prompt, and record how far the scores spread. | Persona + CoT gives steadier, repeatable scores |
+| Accuracy | Label 10 postings for the made-up eval student (`eval/profile.json`) as strong, good, stretch or long shot, from `eval/label_sheet.md` and before any model run. Score them with the bare prompt below and with this prompt, then count how many tiers match the labels. | Persona + CoT agrees with the labels more often |
+| Consistency | Score the same 10 postings 3 times with each prompt, and record how far the scores spread. | Persona + CoT gives steadier scores |
 
 Both tests run the prompts exactly as the app does. Sampling can't be fixed on current models, so the consistency test measures the spread the app really has. The evaluation script calls the model directly and skips the score cache.
 
+The bare baseline is one system line, stored in `eval/bare_prompt.txt`, with the same user message as the scorer (`scorer_user.txt`, profile without location):
+
+```text
+Rate how well this candidate fits this internship from 0 to 100. Reply with only the number.
+```
+
+Its number maps to a tier with the same bands as the rubric (85+ strong, 70+ good, 50+ stretch, else long shot).
+
 Keep the labels and the evaluation script in `eval/`. One slide with both results is stronger evidence than describing the patterns.
+
+The labels were written by Claude at the user's request, not by a human recruiter. The results, which did not confirm either hypothesis, are in the README's Evaluation section and `eval/results.png`.
 
 ---
 

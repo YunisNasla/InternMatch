@@ -1,0 +1,5 @@
+{
+ "note": "First run, before run_eval.py treated replies over 100 as invalid. Bare posting 8 run 2 replied 250, counted here as invalid. Tier matches use the first run's score.",
+ "bare": {"scores": [[62, 65, 72], [72, 78, 72], [78, 82, 78], [85, 85, 82], [72, 72, 78], [86, 88, 85], [72, 72, 72], [5, null, 12], [60, 55, 58], [22, 15, 15]], "tier_matches": 6, "mean_spread": 5.1, "max_spread": 10, "invalid_replies": 1},
+ "persona_cot": {"scores": [[62, 58, 62], [58, 62, 60], [72, 74, 60], [76, 78, 78], [62, 62, 62], [60, 62, 78], [62, 58, 60], [28, 12, 20], [60, 58, 58], [55, 58, 55]], "tier_matches": 3, "mean_spread": 6.7, "max_spread": 18, "invalid_replies": 0}
+}

@@ -1,0 +1,90 @@
+{
+ "is_stem": true,
+ "name": "Diego Ramirez",
+ "location": {
+  "city": "Pomona",
+  "state": "CA"
+ },
+ "education": [
+  {
+   "school": "Cal Poly Pomona",
+   "degree": null,
+   "major": "Mechanical Engineering",
+   "grad_date": "2028-05",
+   "gpa": 3.4
+  }
+ ],
+ "class_standing": "junior",
+ "skills": {
+  "programming_languages": [
+   "MATLAB",
+   "Python"
+  ],
+  "frameworks_libraries": [],
+  "software_tools": [
+   "SolidWorks",
+   "Ansys Fluent"
+  ],
+  "hardware_fabrication": [
+   "CNC mill",
+   "TIG welding",
+   "3D printing",
+   "Arduino"
+  ],
+  "lab_techniques": [],
+  "domain_knowledge": [
+   "GD&T",
+   "CFD",
+   "PID control"
+  ]
+ },
+ "experience": [
+  {
+   "title": "Powertrain Lead",
+   "org": "Formula SAE",
+   "start": "2024-09",
+   "end": "present",
+   "highlights": [
+    "Designed an intake manifold in SolidWorks and validated airflow with Ansys Fluent CFD",
+    "Machined throttle body parts on a CNC mill, cutting part cost by 30%"
+   ]
+  },
+  {
+   "title": "Manufacturing Intern",
+   "org": "Pacific Valve Co",
+   "start": "2025-06",
+   "end": null,
+   "highlights": [
+    "Wrote work instructions for 12 assembly stations and cut rework by 15%"
+   ]
+  }
+ ],
+ "projects": [
+  {
+   "name": "Thermoelectric cooler test stand",
+   "tech": [
+    "Arduino"
+   ],
+   "summary": "Test stand with Arduino data logging and PID temperature control"
+  }
+ ],
+ "coursework": [
+  "Thermodynamics",
+  "Heat Transfer",
+  "Machine Design",
+  "Fluid Mechanics",
+  "Controls"
+ ],
+ "certifications": [],
+ "suggested_role_types": [
+  "mechanical",
+  "industrial_manufacturing"
+ ],
+ "parse_warnings": [
+  "Class standing estimated from graduation date",
+  "Degree type not stated",
+  "Formula SAE start month not given; assumed 2024-09 from Fall",
+  "Manufacturing Intern end date not given (only Summer 2025), so left null",
+  "Arduino listed under hardware based on the project; it is not in the tools list"
+ ]
+}

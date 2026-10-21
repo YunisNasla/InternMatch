@@ -1,0 +1,218 @@
+{
+ "labels": [
+  "good",
+  "strong",
+  "strong",
+  "strong",
+  "good",
+  "strong",
+  "good",
+  "long_shot",
+  "stretch",
+  "stretch"
+ ],
+ "postings": [
+  "Oklo: General Internship Application 2027",
+  "Hermeus: Propulsion Component Engineering Intern - Spring/Summer 2027",
+  "Rocket Lab: Propulsion Analyst Intern Summer 2027",
+  "Rocket Lab: Manufacturing Engineering Intern Summer 2027",
+  "Varda Space Industries: Thermal Engineering Internship - Summer 2027",
+  "Rocket Lab: Test Engineering Intern - Manufacturing Spring 2027",
+  "Hermeus: Structures/Mechanical Engineering Intern - Spring/Summer 2027",
+  "Gallup: Data Engineering Intern",
+  "Zipline: Technical Program Manager Intern (Spring 2027)",
+  "Astera Labs: Platform Software Diagnostics Intern"
+ ],
+ "bare": {
+  "scores": [
+   [
+    68,
+    72,
+    72
+   ],
+   [
+    72,
+    75,
+    72
+   ],
+   [
+    78,
+    75,
+    72
+   ],
+   [
+    82,
+    85,
+    88
+   ],
+   [
+    72,
+    72,
+    72
+   ],
+   [
+    82,
+    82,
+    82
+   ],
+   [
+    78,
+    75,
+    72
+   ],
+   [
+    5,
+    15,
+    5
+   ],
+   [
+    62,
+    60,
+    62
+   ],
+   [
+    20,
+    20,
+    15
+   ]
+  ],
+  "first_run_tiers": [
+   "stretch",
+   "good",
+   "good",
+   "good",
+   "good",
+   "good",
+   "good",
+   "long_shot",
+   "stretch",
+   "long_shot"
+  ],
+  "tier_matches": 4,
+  "mean_spread": 4.2,
+  "max_spread": 10,
+  "invalid_replies": 0
+ },
+ "persona_cot": {
+  "scores": [
+   [
+    58,
+    62,
+    60
+   ],
+   [
+    60,
+    62,
+    45
+   ],
+   [
+    62,
+    76,
+    76
+   ],
+   [
+    76,
+    76,
+    76
+   ],
+   [
+    76,
+    64,
+    62
+   ],
+   [
+    76,
+    62,
+    74
+   ],
+   [
+    40,
+    60,
+    62
+   ],
+   [
+    25,
+    18,
+    25
+   ],
+   [
+    58,
+    58,
+    58
+   ],
+   [
+    58,
+    58,
+    58
+   ]
+  ],
+  "first_run_tiers": [
+   "stretch",
+   "stretch",
+   "stretch",
+   "good",
+   "good",
+   "good",
+   "long_shot",
+   "long_shot",
+   "stretch",
+   "stretch"
+  ],
+  "tier_matches": 4,
+  "mean_spread": 9.2,
+  "max_spread": 22,
+  "invalid_replies": 0,
+  "key_gaps": [
+   [
+    "Dynamics: no coursework or project listed",
+    "FEA: only CFD (Ansys Fluent) shown, no structural analysis",
+    "Mechanics of materials: not listed explicitly, only Machine Design"
+   ],
+   [
+    "No evidence of interest in aviation or Hermeus's mission",
+    "No high-temperature materials, sealing, or failure-mode experience",
+    "No NX experience and no valve or actuator design work listed"
+   ],
+   [
+    "No FEA experience shown",
+    "GPA of 3.4 is below the 3.5 preferred level",
+    "No Siemens NX, cryogenics, or two-phase fluid exposure shown"
+   ],
+   [
+    "GPA of 3.4 is below the preferred 3.5",
+    "No structural FEA shown; Ansys work is CFD only",
+    "No Siemens NX or Jira experience listed"
+   ],
+   [
+    "No aerospace or spacecraft thermal experience; prior internship was in manufacturing",
+    "No spacecraft testing environment exposure such as TVAC",
+    "Data processing coursework and MATLAB/Python analysis work are not shown in a specific project"
+   ],
+   [
+    "GPA 3.4 is below the 3.5 nice-to-have",
+    "No LabVIEW experience shown",
+    "Spring 2027 availability for 12 consecutive on-site weeks is not stated"
+   ],
+   [
+    "No statics, dynamics, or mechanics of materials shown in coursework or projects",
+    "No aircraft or flight hardware experience or stated aviation interest",
+    "No Siemens Teamcenter or NX experience"
+   ],
+   [
+    "No SQL, relational database or data modeling experience, all required",
+    "No evidence of AI coding tools, Git or any cloud or pipeline tooling",
+    "Pomona is well over 1,000 miles from Omaha, and the 250-mile enrollment and on-site requirements are not met"
+   ],
+   [
+    "No evidence of schedule, milestone, or critical-path management or of trade-off decisions across timelines and budgets",
+    "Little evidence of explaining technical issues to non-engineers or of coordinating across multiple disciplines",
+    "Availability for in-person work at the South San Francisco office five days a week is not stated"
+   ],
+   [
+    "No Linux or Git-based workflow experience shown (a stated minimum)",
+    "No C or hardware interface work (I2C, SPI, PCIe) on the profile",
+    "No CI, pytest, or Jenkins experience"
+   ]
+  ]
+ }
+}
