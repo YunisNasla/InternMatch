@@ -17,9 +17,7 @@ def load_active(conn: sqlite3.Connection) -> list[dict]:
     rows = conn.execute(
         "SELECT p.*, c.industry FROM postings p LEFT JOIN companies c ON c.name = p.company WHERE p.active = 1"
     )
-    return [
-        dict(r) | {k: json.loads(r[k]) for k in ("locations", "terms", "degree_levels")} for r in rows
-    ]
+    return [dict(r) | {k: json.loads(r[k]) for k in ("locations", "terms", "degree_levels")} for r in rows]
 
 
 def hard_filter(rows: list[dict], f: FilterState, now: datetime, level: str | None = None) -> tuple[list[dict], int]:

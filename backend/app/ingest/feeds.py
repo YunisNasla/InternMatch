@@ -36,7 +36,7 @@ async def fetch_simplify(client: httpx.AsyncClient) -> list[RawPosting]:
             locations=row.get("locations", []), terms=terms, url=row["url"],
             posted_at=posted_at, date_kind=date_kind,
             ats=ats and ats[0], board=ats and ats[1], ats_job_id=ats and ats[2],
-            degree_levels=degree_levels(row.get("degrees"), row["title"]),
+            degree_levels=degree_levels(row.get("degrees")),  # only Simplify's list; titles are read after dedupe
         ))
     return postings
 

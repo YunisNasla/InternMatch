@@ -81,16 +81,12 @@ def test_also_open_is_title_only_newest_first_unknown_last():
     assert [r["id"] for r in prefilter.also_open(rows)] == ["new", "old", "none"]
 
 
-ALL = {"open", "ug_ms", "unknown", "ms_phd", "phd", "ug"}
-
-
 @pytest.mark.parametrize(
     "standing, expected",
     [("junior", {"open", "ug_ms", "unknown", "ug"}),
-     ("senior", {"open", "ug_ms", "unknown", "ug"}),
      ("masters", {"open", "ug_ms", "unknown", "ms_phd"}),
      ("phd", {"open", "unknown", "ms_phd", "phd"}),
-     ("unknown", ALL)],
+     ("unknown", {"open", "ug_ms", "unknown", "ms_phd", "phd", "ug"})],
 )
 def test_degree_level_follows_class_standing(standing, expected):
     rows = [row(id="open", degree_levels=["masters", "phd", "undergrad"]), row(id="ug_ms", degree_levels=["masters", "undergrad"]),

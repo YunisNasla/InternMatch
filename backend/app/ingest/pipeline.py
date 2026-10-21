@@ -62,13 +62,14 @@ async def run(
                 if not rules.is_internship(p.title):
                     continue
                 p.terms = rules.extract_terms(p.title, p.description)
-                p.degree_levels = rules.degree_levels(None, p.title)
             if KEEP_TERMS & set(p.terms) and not rules.is_non_us(p.locations):
                 postings.append(p)
 
     # 3. Drop duplicates, and anything already dropped as non_stem.
     dropped = {r[0] for r in conn.execute("SELECT id FROM dropped")}
     postings = [p for p in rules.dedupe(postings) if p.id not in dropped]
+    for p in postings:  # Simplify's degrees list when a copy had one, else the kept title's keywords
+        p.degree_levels = p.degree_levels or rules.degree_levels(None, p.title)
 
     # 4. Pull descriptions for new Simplify postings that link to Greenhouse or Lever.
     has_text = {r[0] for r in conn.execute("SELECT id FROM postings WHERE has_description = 1")}
@@ -145,7 +146,10 @@ async def run(
            ON CONFLICT(id) DO UPDATE SET company = excluded.company, title = excluded.title,
                locations = excluded.locations,
                terms = excluded.terms, url = excluded.url, posted_at = excluded.posted_at,
-               date_kind = excluded.date_kind, sources = excluded.sources, degree_levels = excluded.degree_levels,
+               date_kind = excluded.date_kind, sources = excluded.sources,
+               -- a run that only saw the board copy (Simplify down or delisted) keeps the known levels
+               degree_levels = CASE WHEN excluded.degree_levels = '[]' THEN postings.degree_levels
+                                    ELSE excluded.degree_levels END,
                description = COALESCE(excluded.description, postings.description),
                has_description = MAX(excluded.has_description, postings.has_description),
                role_type = COALESCE(excluded.role_type, postings.role_type),

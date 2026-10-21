@@ -87,13 +87,11 @@ def test_dedupe_merges_simplify_listing_into_board_posting_by_job_id():
     assert merged.terms == ["Summer 2027"]
 
 
-def test_dedupe_takes_simplify_degree_levels_over_the_board_title_guess():
+def test_dedupe_fills_degree_levels_from_the_simplify_list():
     board = _posting("greenhouse:spacex", job_id="111")
-    board.degree_levels = ["undergrad"]
     simplify = _posting("simplify", job_id="111")
     simplify.degree_levels = ["masters", "undergrad"]
-    unlabeled = _posting("simplify", job_id="111")
-    [merged] = rules.dedupe([simplify, board, unlabeled])
+    [merged] = rules.dedupe([simplify, board])
     assert merged.degree_levels == ["masters", "undergrad"]
 
 
@@ -150,7 +148,8 @@ def test_non_us_postings(locations, expected):
 @pytest.mark.parametrize(
     "simplify, expected",
     [(["Bachelor's"], ["undergrad"]), (["Bachelor's", "Associate's"], ["undergrad"]),
-     (["Master's", "PhD"], ["masters", "phd"]), (["Bachelor's", "Master's", "PhD"], ["masters", "phd", "undergrad"])],
+     (["Master's", "PhD"], ["masters", "phd"]), (["Bachelor's", "Master's", "PhD"], ["masters", "phd", "undergrad"]),
+     (["MBA"], ["masters"])],
 )
 def test_degree_levels_from_simplify(simplify, expected):
     assert rules.degree_levels(simplify, "PhD Research Intern") == expected  # a Simplify list beats the title
@@ -164,6 +163,8 @@ def test_degree_levels_from_simplify(simplify, expected):
      ("Quantitative Master’s Intern - Investments", ["masters"]),
      ("PhD Residency Intern - Physical ML", ["phd"]),
      ("Quantitative Research Intern - Ph.D.", ["phd"]),
+     ("Campus Quantitative Researcher, UG/MS (Intern)", ["masters", "undergrad"]),
+     ("Manufacturing Science & Technology (MS&T) Co-op", []),
      ("Software Engineering Intern", [])],
 )
 def test_degree_levels_from_title_when_simplify_has_none(title, expected):

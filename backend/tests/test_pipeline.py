@@ -39,11 +39,11 @@ LEVER_JOB = {"id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "text": "GNC Intern",
              "descriptionPlain": "Write guidance code.", "lists": [{"text": "Requirements", "content": "<li>C++</li>"}]}
 
 
-def transport(board_up=True):
+def transport(board_up=True, simplify_up=True):
     def handler(request: httpx.Request) -> httpx.Response:
         url = str(request.url)
         if url == feeds.SIMPLIFY_URL:
-            return httpx.Response(200, json=SIMPLIFY_ROWS)
+            return httpx.Response(200, json=SIMPLIFY_ROWS) if simplify_up else httpx.Response(503)
         if "/boards/acme/jobs" in url:
             return httpx.Response(200, json=ACME_JOBS) if board_up else httpx.Response(503)
         if "api.lever.co/v0/postings/rocketlab/" in url:
@@ -52,8 +52,8 @@ def transport(board_up=True):
     return httpx.MockTransport(handler)
 
 
-async def ingest(conn, board_up=True, companies=ACME):
-    async with httpx.AsyncClient(transport=transport(board_up)) as client:
+async def ingest(conn, board_up=True, companies=ACME, simplify_up=True):
+    async with httpx.AsyncClient(transport=transport(board_up, simplify_up)) as client:
         return await pipeline.run(conn, client, companies, FakeClaude(tag_as_software))
 
 
@@ -106,7 +106,9 @@ async def test_board_company_name_replaces_the_simplify_name_on_merge(tmp_path):
 
 
 async def test_degree_levels_come_from_simplify_or_the_board_title(tmp_path, monkeypatch):
-    rows_with_degrees = [dict(SIMPLIFY_ROWS[0]), dict(SIMPLIFY_ROWS[1], degrees=["Master's", "PhD"]), *SIMPLIFY_ROWS[2:]]
+    # The Simplify copy of job 111 has no degrees list, so its own title ("MS") must not beat the board title ("PhD").
+    rows_with_degrees = [dict(SIMPLIFY_ROWS[0], title="Propulsion Intern (MS)"),
+                         dict(SIMPLIFY_ROWS[1], degrees=["Master's", "PhD"]), *SIMPLIFY_ROWS[2:]]
     phd_board = {"jobs": [dict(ACME_JOBS["jobs"][0], title="Propulsion Intern - PhD")]}
     monkeypatch.setitem(globals(), "SIMPLIFY_ROWS", rows_with_degrees)
     monkeypatch.setitem(globals(), "ACME_JOBS", phd_board)
@@ -126,9 +128,20 @@ def test_connect_adds_the_degree_column_to_an_old_database(tmp_path):
     assert old_schema != db.SCHEMA
     old = sqlite3.connect(settings.db_file)
     old.executescript(old_schema)
-    old.execute("INSERT INTO ingest_runs (started_at) VALUES ('2026-10-20T00:00:00Z')")
+    old.execute(
+        "INSERT INTO postings (id, source, company, title, locations, terms, url, date_kind, has_description, "
+        "work_arrangement, active, sources, first_seen, last_seen) VALUES ('p', 'simplify', 'Acme', 'Intern', '[]', "
+        "'[]', '', 'unknown', 0, 'not_stated', 1, '[]', 'now', 'now')"
+    )
     old.commit()
     old.close()
     conn = db.connect()
-    assert "degree_levels" in {r[1] for r in conn.execute("PRAGMA table_info(postings)")}
-    assert conn.execute("SELECT COUNT(*) FROM ingest_runs").fetchone()[0] == 1
+    assert conn.execute("SELECT degree_levels FROM postings WHERE id = 'p'").fetchone()[0] == "[]"
+
+
+async def test_a_failed_simplify_pull_keeps_known_degree_levels(tmp_path, monkeypatch):
+    monkeypatch.setitem(globals(), "SIMPLIFY_ROWS", [dict(SIMPLIFY_ROWS[0], degrees=["Bachelor's"]), *SIMPLIFY_ROWS[1:]])
+    conn = db.connect()
+    await ingest(conn)
+    await ingest(conn, simplify_up=False)  # only the board copy, whose title says nothing about degrees
+    assert json.loads(rows(conn)["greenhouse:acme:111"]["degree_levels"]) == ["undergrad"]

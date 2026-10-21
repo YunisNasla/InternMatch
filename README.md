@@ -8,7 +8,7 @@ Built for CS4680 Prompt Engineering. It covers engineering, technology, science 
 
 1. **Upload:** a PDF or DOCX resume, plus an optional "What are you looking for?" box.
 2. **Review:** the parsed profile and search preferences, all editable.
-3. **Results:** postings open to the student's degree level (from the class standing on page 2), then the top 20 scored matches, each with a fit score, a tier (strong, good, stretch or long shot), a recruiter note and a "Why this score" table. A chat refines the search, "Score 10 more" scores the next 10, and "Also open" lists postings that have only a title.
+3. **Results:** the top 20 scored matches, each with a fit score, a tier (strong, good, stretch or long shot), a recruiter note and a "Why this score" table. A chat refines the search, "Score 10 more" scores the next 10, and "Also open" lists postings that have only a title. Results only show roles open to the class standing on page 2 (undergrad, Master's or PhD).
 
 There are no accounts. The profile lives in the browser's local storage and is sent with each request. The server never stores a resume or a profile, and "Clear my data" wipes the browser copy.
 
