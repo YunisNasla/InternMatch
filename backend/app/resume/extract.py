@@ -7,7 +7,7 @@ import docx
 import pdfplumber
 
 MAX_BYTES = 5 * 1024 * 1024
-# shortcut: resumes are 1 to 2 pages; these caps stop a huge PDF from stalling the server or the parser call.
+# shortcut: resumes are 1 to 2 pages; these caps stop a huge PDF from stalling the server or the parser call. Raise them if real CVs get cut off.
 MAX_PAGES = 6
 MAX_CHARS = 30_000
 

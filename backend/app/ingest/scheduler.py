@@ -30,9 +30,13 @@ async def run_ingest() -> dict | None:
     if _lock.locked():
         return None
     async with _lock:
-        with closing(db.connect()) as conn:
-            async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
-                return await pipeline.run(conn, client, pipeline.load_companies(), llm.client())
+        try:
+            with closing(db.connect()) as conn:
+                async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+                    return await pipeline.run(conn, client, pipeline.load_companies(), llm.client())
+        except Exception:
+            log.exception("ingest failed")  # background runs have no caller to see the error
+            return None
 
 
 def start_in_background() -> bool:

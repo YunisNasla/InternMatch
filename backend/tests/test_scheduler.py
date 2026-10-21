@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
@@ -33,3 +34,13 @@ async def test_second_run_is_refused_while_one_is_going(monkeypatch):
 
 def test_ingest_route_is_off_by_default():
     assert TestClient(app).post("/api/ingest").status_code in (404, 405)
+
+
+async def test_a_failed_run_is_logged(monkeypatch, caplog):
+    async def broken_run(*args):
+        raise KeyError("bad feed shape")
+
+    monkeypatch.setattr(pipeline, "run", broken_run)
+    with caplog.at_level(logging.ERROR):
+        assert await scheduler.run_ingest() is None
+    assert "ingest failed" in caplog.text

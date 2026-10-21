@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from app import db, llm
+from app.config import settings
 from app.schemas import TagResult
 from tests.fakes import FakeClaude
 from tests.test_pipeline import ACME, SIMPLIFY_ROWS, transport
@@ -85,3 +86,10 @@ async def test_a_retried_tag_still_sees_the_stored_description(tmp_path):
     assert "Write guidance code." in retried["messages"][-1]["content"]
     row = conn.execute("SELECT role_type, work_arrangement FROM postings WHERE id LIKE 'lever:rocketlab:%'").fetchone()
     assert tuple(row) == ("software", "remote")
+
+
+def test_client_without_a_key_says_what_to_set(monkeypatch):
+    monkeypatch.setattr(settings, "anthropic_api_key", "")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="ANTHROPIC_API_KEY"):
+        llm.client()

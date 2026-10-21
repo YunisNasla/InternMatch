@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import re
 from pathlib import Path
 
@@ -46,6 +47,9 @@ def load_examples(name: str) -> list[tuple[str, str]]:
 
 
 def client() -> anthropic.AsyncAnthropic:
+    # Without a key the SDK fails each call with a TypeError no handler catches, so fail once with a clear message.
+    if not (settings.anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY")):
+        raise RuntimeError("ANTHROPIC_API_KEY is not set. Add it to .env at the repo root.")
     # The SDK default waits 10 minutes per try; a stuck call must fail fast so search can fall back to the cache.
     return anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key or None, timeout=60, max_retries=1)
 
