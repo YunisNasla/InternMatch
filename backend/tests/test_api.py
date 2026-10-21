@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.testclient import TestClient
 
 from app.llm import PROMPTS_DIR
@@ -131,6 +132,8 @@ def test_oversized_upload_is_refused_before_it_is_read(client):
     body = b"x" * (6 * 1024 * 1024)
     response = http.post("/api/parse", content=body, headers={"content-type": "multipart/form-data; boundary=b"})
     assert response.status_code == 413 and fake.calls == []
+    # CORS must wrap the guard, or the browser hides the 413 message behind a network error.
+    assert app.user_middleware[0].cls is CORSMiddleware
 
 
 def test_search_rejects_an_oversized_profile(client):

@@ -35,7 +35,8 @@ export default function Upload() {
     setError('')
     try {
       const result = await parse(file, text)
-      save({ profile: result.profile, filters: result.filters, baseline: result.filters, chat: [], reply: result.reply })
+      save({ profile: result.profile, filters: result.filters, baseline: result.filters, chat: [], reply: result.reply,
+        cityFound: result.home_city_found })
       navigate('/review')
     } catch (err) {
       setError((err as Error).message)

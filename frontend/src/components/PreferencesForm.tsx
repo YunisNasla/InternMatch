@@ -4,10 +4,6 @@ import type { Arrangement, Filters, Meta } from '../lib/types'
 import { input } from '../lib/ui'
 import { Check } from './Icons'
 
-const ARRANGEMENTS: { code: Arrangement; label: string }[] = [
-  { code: 'in_person', label: 'In person' }, { code: 'hybrid', label: 'Hybrid' }, { code: 'remote', label: 'Remote' },
-]
-
 function toggle<T>(list: T[], item: T): T[] {
   return list.includes(item) ? list.filter((x) => x !== item) : [...list, item]
 }
@@ -34,8 +30,10 @@ function Group({ title, hint, children }: { title: string; hint?: string; childr
   )
 }
 
-export default function PreferencesForm({ filters, onChange, meta }: { filters: Filters; onChange: (f: Filters) => void; meta: Meta | null }) {
-  const [cityFound, setCityFound] = useState<boolean | null>(null)
+export default function PreferencesForm({ filters, onChange, meta, cityFoundAtParse }: {
+  filters: Filters; onChange: (f: Filters) => void; meta: Meta | null; cityFoundAtParse?: boolean
+}) {
+  const [cityFound, setCityFound] = useState<boolean | null>(cityFoundAtParse === false ? false : null)
   const set = (changes: Partial<Filters>) => onChange({ ...filters, ...changes })
   const remoteOnly = filters.work_arrangements.length === 1 && filters.work_arrangements[0] === 'remote'
 
@@ -79,12 +77,13 @@ export default function PreferencesForm({ filters, onChange, meta }: { filters: 
         <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
           <div>
             <label htmlFor="home" className="mb-1 block text-[13px] font-medium text-muted">Home city</label>
-            <input id="home" className={input} placeholder="City, ST" value={filters.home_city ?? ''}
+            <input id="home" className={input} placeholder="City, ST" maxLength={100} value={filters.home_city ?? ''}
               aria-describedby="home-msg" aria-invalid={cityFound === false}
-              onChange={(e) => { set({ home_city: e.target.value || null }); setCityFound(null) }}
+              onChange={(e) => { set({ home_city: e.target.value.trim() ? e.target.value : null }); setCityFound(null) }}
               onBlur={(e) => verifyCity(e.target.value)} />
             <p id="home-msg" className="mt-1 min-h-5 text-[13px] text-notmet">
               {cityFound === false && "City not found. Try City, ST, like Austin, TX. Until then, distance isn't applied."}
+              {!filters.home_city && filters.max_distance_miles && !remoteOnly && 'Add a home city to use the distance limit.'}
             </p>
           </div>
           <div>
@@ -99,10 +98,11 @@ export default function PreferencesForm({ filters, onChange, meta }: { filters: 
 
       <Group title="Work arrangement" hint="Postings that don't say are always included.">
         <div className="flex flex-wrap gap-2">
-          {ARRANGEMENTS.map((a) => {
-            const on = filters.work_arrangements.includes(a.code)
-            return <Chip key={a.code} label={a.label} on={on}
-              onClick={() => (!on || filters.work_arrangements.length > 1) && set({ work_arrangements: toggle(filters.work_arrangements, a.code) })} />
+          {meta?.work_arrangements.filter((a) => a.code !== 'not_stated').map((a) => {
+            const code = a.code as Arrangement
+            const on = filters.work_arrangements.includes(code)
+            return <Chip key={code} label={a.label} on={on}
+              onClick={() => (!on || filters.work_arrangements.length > 1) && set({ work_arrangements: toggle(filters.work_arrangements, code) })} />
           })}
         </div>
       </Group>

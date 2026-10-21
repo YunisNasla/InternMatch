@@ -76,10 +76,10 @@ The whole evaluation ran twice:
 ![Evaluation results: bare prompt vs persona + chain of thought](eval/results.png)
 
 **What the results show:**
-- Neither hypothesis held. On these 10 postings the bare prompt matched the labels as often as the scorer did, and its scores spread less across runs.
+- Neither hypothesis held. On these 10 postings the bare prompt matched the labels at least as often as the scorer did (6 vs 3, then 4 vs 4), and its scores spread less across runs.
 - **Calibration:** the scorer scores lower than the labels. It marks inferred requirements ("enthusiasm for aviation") and nice-to-haves (a 3.5 GPA when the student has 3.4) as gaps. For example, the Hermeus structures role scored 40 to 62 against a label of good.
 - **Spread:** the scorer's spread comes from requirement statuses that flip between runs. One requirement read as partial instead of met moves the score by about 15 points. The bare prompt anchors on one number and repeats it.
-- **Format:** the bare prompt broke its "only the number" rule once in 30 replies. It answered 250, apparently from a posting's 250-mile rule. The scorer's JSON passed validation every time.
+- **Format:** the bare prompt broke its "only the number" rule once in 30 replies. It answered 250, apparently from a posting's 250-mile rule. The scorer runs as in the app, with one validation retry, and returned a valid result every time. The bare prompt gets no retry.
 - **Explanations:** the scorer's real value is that every score comes with a requirements table, evidence, gaps and a resume tip that a student can check. The bare prompt gives none of that.
 - **Caveats:** 10 postings, one student and AI-written labels are a small test. The two runs disagree on accuracy (6 vs 4 for bare), which shows how noisy it is.
 
@@ -92,7 +92,7 @@ Run 1's numbers are kept in `eval/results_run1.json`.
 
 ## Setup
 
-You need Python 3.12 or newer, Node 20.19 or newer, and an Anthropic API key.
+You need Python 3.12 or newer, Node 22.22 or newer, and an Anthropic API key.
 
 1. **Environment:** from the repo root, run `cp .env.example .env`, then set `ANTHROPIC_API_KEY` in `.env`. The other defaults work locally. Backend and frontend both read this one file.
 2. **Backend:**

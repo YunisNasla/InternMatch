@@ -1,4 +1,4 @@
-"""Bare prompt vs persona + chain-of-thought (Prompts 2 + 3), against hand labels.
+"""Bare prompt vs persona + chain-of-thought (Prompts 2 + 3), against the labels in eval/labels.json.
 
 Run from backend/: PYTHONPATH=. .venv/bin/python ../eval/run_eval.py
 Needs eval/labels.json: a list of 10 tiers, in the order of eval/postings.json.
@@ -9,6 +9,8 @@ import asyncio
 import json
 import re
 from pathlib import Path
+
+import anthropic
 
 from app import llm
 from app.llm import HAIKU, load_prompt
@@ -50,7 +52,10 @@ async def main() -> None:
         async with sem:
             if kind == "bare":
                 return await bare_score(client, profile_json, postings[i])
-            result = await scorer._score_one(client, profile_json, postings[i], None)
+            try:  # the app's path: one validation retry, then an invalid reply
+                result = await scorer._score_one(client, profile_json, postings[i], None)
+            except (llm.LLMError, anthropic.APIError):
+                return None
             gaps.setdefault(i, result.key_gaps)
             return result.fit_score
 
@@ -63,7 +68,7 @@ async def main() -> None:
     results = {"labels": labels, "postings": [f"{p['company']}: {p['title']}" for p in postings]}
     for kind, runs in by.items():
         valid = [[s for s in r if s is not None] for r in runs]
-        tiers = [tier_for(v[0]) if v else None for v in valid]
+        tiers = [tier_for(r[0]) if r[0] is not None else None for r in runs]
         spreads = [max(v) - min(v) for v in valid if v]
         results[kind] = {
             "scores": runs,

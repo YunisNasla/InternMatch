@@ -13,12 +13,6 @@ import type { Card, Filters, Posting, SearchResult, Turn } from '../lib/types'
 
 const FIRST_PAGE = 20
 
-function sortCards(cards: Card[], by: Filters['sort_by']): Card[] {
-  return [...cards].sort(by === 'posted'
-    ? (a, b) => (b.posted_at ?? '').localeCompare(a.posted_at ?? '')
-    : (a, b) => b.score.fit_score - a.score.fit_score)
-}
-
 export default function Results() {
   const meta = useMeta()
   const saved = load()
@@ -85,7 +79,7 @@ export default function Results() {
       setUnscored((n) => n + r.unscored.length)
       setNextOffset((o) => o + 10)
     } catch (e) {
-      setError((e as Error).message)
+      if (id === latest.current) setError((e as Error).message)
     } finally {
       setLoadingMore(false)
     }
@@ -97,7 +91,7 @@ export default function Results() {
     setAsking(true)
     setAskError('')
     try {
-      const r = await refine(filters!, message, resultsSummary(sortCards(cards, filters!.sort_by)), recentTurns(chat))
+      const r = await refine(filters!, message, resultsSummary(cards), recentTurns(chat))
       const next: Turn[] = [...withQuestion, { role: 'app' as const, text: r.reply }].slice(-6)
       setChat(next)
       save({ chat: next })
@@ -110,7 +104,6 @@ export default function Results() {
     }
   }
 
-  const sorted = sortCards(cards, filters.sort_by)
   const alsoOpen: Posting[] = result?.also_open ?? []
 
   return (
@@ -119,7 +112,7 @@ export default function Results() {
       <main className="mx-auto grid max-w-[1400px] grid-cols-[minmax(0,1fr)] gap-5 px-4 pb-16 pt-6 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)_340px] lg:items-start">
         <div className="space-y-5 lg:sticky lg:top-20">
           <SearchSummary filters={filters} baseline={baseline} meta={meta}
-            onUndo={(field) => applyFilters({ ...filters, [field]: baseline[field] })} />
+            onUndo={(field) => applyFilters({ ...filters, [field]: baseline[field] })} busy={asking} />
         </div>
 
         <div className="order-3 min-w-0 space-y-3 lg:order-none">
@@ -131,8 +124,11 @@ export default function Results() {
                 {cards.length ? `${cards.length} matches scored, ${filters.sort_by === 'posted' ? 'newest first' : 'best fit first'}` : ''}
               </p>
             )}
-            {result && !result.home_city_found && filters.home_city && (
-              <Notice>We couldn't find {filters.home_city}, so distance isn't applied. Fix it in <a className="font-medium text-accent" href="/review">preferences</a>.</Notice>
+            {result && !result.home_city_found && (filters.home_city || filters.max_distance_miles) && (
+              <Notice>
+                {filters.home_city ? `We couldn't find ${filters.home_city}, so distance isn't applied.` : 'Add a home city to use the distance limit.'}
+                {' '}Fix it in <a className="font-medium text-accent" href="/review">preferences</a>.
+              </Notice>
             )}
             {result && result.hidden_count > 0 && (
               <Notice tone="info">{result.hidden_count} postings hidden because their location couldn't be found.</Notice>
@@ -145,7 +141,7 @@ export default function Results() {
 
           {loading
             ? Array.from({ length: 5 }, (_, i) => <CardPlaceholder key={i} />)
-            : sorted.map((c) => <ResultCard key={c.id} card={c} />)}
+            : cards.map((c) => <ResultCard key={c.id} card={c} />)}
 
           {!loading && !error && cards.length === 0 && (
             <div className="rounded-lg border border-line bg-surface px-5 py-8 text-center">

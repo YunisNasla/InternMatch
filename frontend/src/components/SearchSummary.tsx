@@ -5,8 +5,8 @@ import { Close } from './Icons'
 
 const SHOWN: (keyof Filters)[] = ['role_types', 'industries', 'home_city', 'max_distance_miles', 'work_arrangements', 'terms']
 
-export default function SearchSummary({ filters, baseline, meta, onUndo }: {
-  filters: Filters; baseline: Filters; meta: Meta | null; onUndo: (field: keyof Filters) => void
+export default function SearchSummary({ filters, baseline, meta, onUndo, busy }: {
+  filters: Filters; baseline: Filters; meta: Meta | null; onUndo: (field: keyof Filters) => void; busy: boolean
 }) {
   const changed = changedFields(filters, baseline)
   return (
@@ -28,8 +28,8 @@ export default function SearchSummary({ filters, baseline, meta, onUndo }: {
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {changed.map((f) => (
               <li key={f}>
-                <button type="button" onClick={() => onUndo(f)} aria-label={`Undo: ${describe(f, filters, meta)}`}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent-soft py-1 pl-2.5 pr-1.5 text-left text-[13px] font-medium text-accent-strong hover:border-accent">
+                <button type="button" disabled={busy} onClick={() => onUndo(f)} aria-label={`Undo: ${describe(f, filters, meta)}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-accent/30 bg-accent-soft py-1 pl-2.5 pr-1.5 text-left text-[13px] font-medium text-accent-strong hover:border-accent disabled:opacity-50">
                   {describe(f, filters, meta)} <Close className="size-3.5 shrink-0" />
                 </button>
               </li>

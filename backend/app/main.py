@@ -37,12 +37,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="InternMatch", lifespan=lifespan)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.middleware("http")
@@ -53,6 +47,15 @@ async def refuse_big_uploads(request: Request, call_next):
         if not size or not size.isdigit() or int(size) > MAX_BYTES + 64 * 1024:
             return JSONResponse({"detail": "That file is over 5 MB. Upload a smaller PDF or Word file."}, status_code=413)
     return await call_next(request)
+
+
+# Added last so it wraps the upload guard: the browser can only read the 413 message with CORS headers on it.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/api/meta")

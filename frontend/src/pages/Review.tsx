@@ -41,7 +41,7 @@ export default function Review() {
         )}
 
         <ProfilePanel profile={profile} onChange={setProfile} />
-        <PreferencesForm filters={filters} onChange={setFilters} meta={meta} />
+        <PreferencesForm filters={filters} onChange={setFilters} meta={meta} cityFoundAtParse={saved.cityFound} />
       </main>
 
       <div className="fixed inset-x-0 bottom-0 border-t border-line bg-surface/95 backdrop-blur-sm">
