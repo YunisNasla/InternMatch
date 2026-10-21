@@ -62,6 +62,7 @@ async def run(
                 if not rules.is_internship(p.title):
                     continue
                 p.terms = rules.extract_terms(p.title, p.description)
+                p.degree_levels = rules.degree_levels(None, p.title)
             if KEEP_TERMS & set(p.terms) and not rules.is_non_us(p.locations):
                 postings.append(p)
 
@@ -138,13 +139,13 @@ async def run(
     stored = {r["id"]: set(json.loads(r["sources"])) for r in conn.execute("SELECT id, sources FROM postings")}
     conn.executemany(
         """INSERT INTO postings (id, source, company, title, locations, terms, url, ats_job_id, posted_at, date_kind,
-               description, has_description, lever_workplace, role_type, work_arrangement, active, sources, first_seen,
-               last_seen)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+               description, has_description, lever_workplace, degree_levels, role_type, work_arrangement, active,
+               sources, first_seen, last_seen)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
            ON CONFLICT(id) DO UPDATE SET company = excluded.company, title = excluded.title,
                locations = excluded.locations,
                terms = excluded.terms, url = excluded.url, posted_at = excluded.posted_at,
-               date_kind = excluded.date_kind, sources = excluded.sources,
+               date_kind = excluded.date_kind, sources = excluded.sources, degree_levels = excluded.degree_levels,
                description = COALESCE(excluded.description, postings.description),
                has_description = MAX(excluded.has_description, postings.has_description),
                role_type = COALESCE(excluded.role_type, postings.role_type),
@@ -153,7 +154,7 @@ async def run(
         [
             (p.id, p.ats or "simplify", p.company, p.title, json.dumps(p.locations), json.dumps(p.terms), p.url,
              p.ats_job_id, p.posted_at, p.date_kind, p.description, int(bool(p.description)), p.lever_workplace,
-             tags[p.id].role_type if p.id in tags else None,
+             json.dumps(p.degree_levels), tags[p.id].role_type if p.id in tags else None,
              # Title-only postings ignore the tagger's arrangement: it only saw the title.
              rules.arrangement(
                  p.lever_workplace, tags[p.id].work_arrangement if p.id in tags and p.description else None, p.locations,

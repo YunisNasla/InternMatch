@@ -103,3 +103,32 @@ async def test_board_company_name_replaces_the_simplify_name_on_merge(tmp_path):
         assert rows(conn)["greenhouse:acme:111"]["company"] == "Acme Space"
     finally:
         SIMPLIFY_ROWS[0]["company_name"] = "Acme Space"
+
+
+async def test_degree_levels_come_from_simplify_or_the_board_title(tmp_path, monkeypatch):
+    rows_with_degrees = [dict(SIMPLIFY_ROWS[0]), dict(SIMPLIFY_ROWS[1], degrees=["Master's", "PhD"]), *SIMPLIFY_ROWS[2:]]
+    phd_board = {"jobs": [dict(ACME_JOBS["jobs"][0], title="Propulsion Intern - PhD")]}
+    monkeypatch.setitem(globals(), "SIMPLIFY_ROWS", rows_with_degrees)
+    monkeypatch.setitem(globals(), "ACME_JOBS", phd_board)
+    conn = db.connect()
+    await ingest(conn)
+    postings = rows(conn)
+    assert json.loads(postings["greenhouse:acme:111"]["degree_levels"]) == ["phd"]
+    assert json.loads(postings["lever:rocketlab:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"]["degree_levels"]) == ["masters", "phd"]
+
+
+def test_connect_adds_the_degree_column_to_an_old_database(tmp_path):
+    import sqlite3
+
+    from app.config import settings
+
+    old_schema = db.SCHEMA.replace("    degree_levels TEXT NOT NULL DEFAULT '[]',\n", "")
+    assert old_schema != db.SCHEMA
+    old = sqlite3.connect(settings.db_file)
+    old.executescript(old_schema)
+    old.execute("INSERT INTO ingest_runs (started_at) VALUES ('2026-10-20T00:00:00Z')")
+    old.commit()
+    old.close()
+    conn = db.connect()
+    assert "degree_levels" in {r[1] for r in conn.execute("PRAGMA table_info(postings)")}
+    assert conn.execute("SELECT COUNT(*) FROM ingest_runs").fetchone()[0] == 1

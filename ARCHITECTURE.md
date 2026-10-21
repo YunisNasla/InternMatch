@@ -125,7 +125,7 @@ The posting tagger can also return `non_stem`. Those postings are dropped at ing
 
 | Source | What we use | Posted date | Work arrangement |
 | --- | --- | --- | --- |
-| [SimplifyJobs Summer 2027 repo](https://github.com/SimplifyJobs/Summer2027-Internships) | Title, company, locations, terms, apply link from `.github/scripts/listings.json` on the `dev` branch. No descriptions. | `date_posted` (Unix timestamp) | As in [Ingest step 5](#ingest-and-tagging): Lever's `workplaceType` for a Lever apply link, else the posting tagger if a Greenhouse or Lever description was pulled, falling back to the location text ("Remote", "Hybrid"); anything else is `not_stated` |
+| [SimplifyJobs Summer 2027 repo](https://github.com/SimplifyJobs/Summer2027-Internships) | Title, company, locations, terms, degree levels (`degrees`), apply link from `.github/scripts/listings.json` on the `dev` branch. No descriptions. | `date_posted` (Unix timestamp) | As in [Ingest step 5](#ingest-and-tagging): Lever's `workplaceType` for a Lever apply link, else the posting tagger if a Greenhouse or Lever description was pulled, falling back to the location text ("Remote", "Hybrid"); anything else is `not_stated` |
 | [Greenhouse Job Board API](https://developers.greenhouse.io/job-board.html) | Full descriptions for each seed-list company: `https://boards-api.greenhouse.io/v1/boards/{board}/jobs?content=true` | `first_published`, falling back to `updated_at` (shown as "Updated") | No built-in field, so the posting tagger reads the description |
 | [Lever Postings API](https://github.com/lever/postings-api) | Full descriptions for each seed-list company: `https://api.lever.co/v0/postings/{board}?mode=json` | `createdAt` | Built-in `workplaceType`: remote, onsite, hybrid or unspecified. Code uses it whenever it isn't unspecified. |
 
@@ -155,7 +155,7 @@ When a user picks industries, the app uses those industry lists, plus any Simpli
 The ingest job runs inside FastAPI using APScheduler, Monday to Friday every 6 hours, in the `INGEST_TIMEZONE` time zone (default `America/Los_Angeles`). It also runs on startup if the last run was more than 6 hours ago. A 6-hour schedule only fires while the app is running, which is why the startup check matters. The startup run is a background job: the app serves the data it already has right away, and new postings appear when the run finishes. Only one ingest runs at a time.
 
 1. Pull Simplify, then every seed-list board. Record whether each pull succeeded.
-2. Keep only internships on board postings (see [Data sources](#data-sources)), and read their terms. Keep postings the source still lists as open (for Simplify, `active` is true) for the supported terms (Summer 2027, Fall 2026, Spring 2027) plus `unknown`. Drop postings whose every location is outside the US ("London, UK"); unknown location text such as "Multiple Locations" is kept.
+2. Keep only internships on board postings (see [Data sources](#data-sources)), and read their terms. Keep postings the source still lists as open (for Simplify, `active` is true) for the supported terms (Summer 2027, Fall 2026, Spring 2027) plus `unknown`. Drop postings whose every location is outside the US ("London, UK"); unknown location text such as "Multiple Locations" is kept. Record each posting's degree levels (`undergrad`, `masters`, `phd`): Simplify's `degrees` list when it has one, otherwise keywords in the title ("BS/MS", "PhD", "Master's", "Undergrad"). Nothing found means unknown.
 3. Drop duplicates. First match on the Greenhouse or Lever job ID, taken from the board data or from a Simplify apply link. Without an ID, match on company, title and location.
 4. Pull descriptions for Simplify postings with a Greenhouse or Lever apply link.
 5. Run the **posting tagger** once on each *new* posting.
@@ -187,7 +187,8 @@ Distance is city to city. The user's home city and each posting's locations are 
 
 ## Prefilter and scoring
 
-1. **Hard filters (code):** industry, role type, term, posted within, work arrangement, distance, excluded companies, and the chat-only include and exclude keywords.
+1. **Hard filters (code):** industry, role type, term, degree level, posted within, work arrangement, distance, excluded companies, and the chat-only include and exclude keywords.
+   - **Degree level:** comes from the profile's class standing, not a filter field: freshman to senior see undergrad roles, `masters` sees Master's roles, `phd` sees PhD roles. Postings with unknown levels are kept, and an `unknown` standing sees every level. The student changes it by editing class standing on page 2.
    - **Term:** postings with an `unknown` term are kept, the same way `not_stated` arrangements are kept.
    - **Posted within:** uses the posted date, or the updated date when that's all there is. "Date unknown" postings are hidden while this filter is set.
 2. **Split:**

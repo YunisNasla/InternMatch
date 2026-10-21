@@ -11,7 +11,7 @@ NOW = datetime(2026, 10, 19, tzinfo=UTC)
 def row(**kw):
     base = {"id": "p", "company": "Acme", "title": "Intern", "description": "work", "has_description": 1,
             "industry": "space", "role_type": "software", "terms": ["Summer 2027"], "posted_at": "2026-10-15T00:00:00Z",
-            "date_kind": "posted", "work_arrangement": "in_person", "locations": ["Los Angeles, CA"]}
+            "date_kind": "posted", "work_arrangement": "in_person", "locations": ["Los Angeles, CA"], "degree_levels": []}
     return base | kw
 
 
@@ -79,3 +79,22 @@ def test_also_open_is_title_only_newest_first_unknown_last():
             row(id="none", has_description=0, posted_at=None), row(id="new", has_description=0),
             row(id="described")]
     assert [r["id"] for r in prefilter.also_open(rows)] == ["new", "old", "none"]
+
+
+ALL = {"open", "ug_ms", "unknown", "ms_phd", "phd", "ug"}
+
+
+@pytest.mark.parametrize(
+    "standing, expected",
+    [("junior", {"open", "ug_ms", "unknown", "ug"}),
+     ("senior", {"open", "ug_ms", "unknown", "ug"}),
+     ("masters", {"open", "ug_ms", "unknown", "ms_phd"}),
+     ("phd", {"open", "unknown", "ms_phd", "phd"}),
+     ("unknown", ALL)],
+)
+def test_degree_level_follows_class_standing(standing, expected):
+    rows = [row(id="open", degree_levels=["masters", "phd", "undergrad"]), row(id="ug_ms", degree_levels=["masters", "undergrad"]),
+            row(id="unknown"), row(id="ms_phd", degree_levels=["masters", "phd"]), row(id="phd", degree_levels=["phd"]),
+            row(id="ug", degree_levels=["undergrad"])]
+    level = filters.LEVEL_BY_STANDING.get(standing)
+    assert {r["id"] for r in filters.hard_filter(rows, FilterState(), NOW, level)[0]} == expected

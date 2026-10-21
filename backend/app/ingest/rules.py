@@ -24,6 +24,13 @@ def extract_terms(title: str, description: str | None) -> list[str]:
     return list(UNKNOWN_TERMS)
 
 
+# Degree levels: Simplify's curated list wins; otherwise word-bounded title keywords ("BS/MS", "Ph.D.", "Master’s").
+_SIMPLIFY_LEVEL = {"Bachelor's": "undergrad", "Associate's": "undergrad", "Master's": "masters", "PhD": "phd"}
+_TITLE_LEVEL = {
+    "phd": re.compile(r"\bph\.?\s?d\b|\bdoctoral\b", re.IGNORECASE),
+    "masters": re.compile(r"\bmaster[’']?s\b|\bm\.?s\b", re.IGNORECASE),
+    "undergrad": re.compile(r"\bundergrad|\bbachelor[’']?s?\b|\bb\.?s\b", re.IGNORECASE),
+}
 _GREENHOUSE_URL = re.compile(r"greenhouse\.io/([\w-]+)/jobs/(\d+)")
 _LEVER_URL = re.compile(r"jobs\.lever\.co/([\w-]+)/([0-9a-f-]{36})")
 
@@ -114,6 +121,7 @@ class RawPosting:
     ats_job_id: str | None = None
     description: str | None = None
     lever_workplace: str | None = None
+    degree_levels: list[str] = field(default_factory=list)
     sources: set[str] = field(default_factory=set)
 
     def __post_init__(self):
@@ -128,6 +136,12 @@ class RawPosting:
         return (self.company.casefold(), self.title.casefold(), tuple(sorted(loc.casefold() for loc in self.locations)))
 
 
+def degree_levels(simplify_degrees: list[str] | None, title: str) -> list[str]:
+    """Sorted levels the posting is open to ("masters", "phd", "undergrad"), or [] when unknown."""
+    levels = {_SIMPLIFY_LEVEL[d] for d in simplify_degrees or [] if d in _SIMPLIFY_LEVEL}
+    return sorted(levels or {level for level, rx in _TITLE_LEVEL.items() if rx.search(title)})
+
+
 def dedupe(postings: list[RawPosting]) -> list[RawPosting]:
     """Merge copies of one job. The board copy wins, since it has the description."""
     kept: list[RawPosting] = []
@@ -139,6 +153,8 @@ def dedupe(postings: list[RawPosting]) -> list[RawPosting]:
             base.sources |= p.sources
             if base.terms == UNKNOWN_TERMS:
                 base.terms = p.terms
+            if p.feed == "simplify" and p.degree_levels:  # Simplify's curated list beats a title guess
+                base.degree_levels = p.degree_levels
             continue
         kept.append(p)
         by_key[p.id] = by_key[p.fallback_key] = p

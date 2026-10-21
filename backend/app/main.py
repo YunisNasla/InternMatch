@@ -139,7 +139,8 @@ CARD_FIELDS = ("id", "company", "title", "locations", "url", "posted_at", "date_
 async def search(req: SearchRequest, claude: Annotated[anthropic.AsyncAnthropic, Depends(get_llm)]):
     """One page of scored cards. Offset 0 also returns "Also open"; later offsets return only the next 10."""
     with closing(db.connect()) as conn:
-        kept, hidden = filters.hard_filter(filters.load_active(conn), req.filters, datetime.now(UTC))
+        level = filters.LEVEL_BY_STANDING.get(req.profile.class_standing)
+        kept, hidden = filters.hard_filter(filters.load_active(conn), req.filters, datetime.now(UTC), level)
         # shortcut: each page re-ranks, so an ingest between pages can skip a posting; cache the ranking if ingest runs often.
         batch, has_more = prefilter.page(prefilter.rank(req.profile, kept), req.offset)
         results, unscored = await scorer.score(claude, conn, req.profile, batch, req.filters.emphasis)

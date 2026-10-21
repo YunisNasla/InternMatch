@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS postings (
     description TEXT,
     has_description INTEGER NOT NULL,
     lever_workplace TEXT,
+    degree_levels TEXT NOT NULL DEFAULT '[]',
     role_type TEXT,
     work_arrangement TEXT NOT NULL,
     active INTEGER NOT NULL,
@@ -60,6 +61,11 @@ def connect() -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(SCHEMA)
+    try:  # databases made before degree levels existed
+        conn.execute("ALTER TABLE postings ADD COLUMN degree_levels TEXT NOT NULL DEFAULT '[]'")
+    except sqlite3.OperationalError as error:
+        if "duplicate column" not in str(error):
+            raise
     return conn
 
 

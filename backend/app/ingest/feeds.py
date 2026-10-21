@@ -2,7 +2,14 @@
 
 import httpx
 
-from app.ingest.rules import UNKNOWN_TERMS, RawPosting, ats_job_id_from_url, pick_date, strip_html
+from app.ingest.rules import (
+    UNKNOWN_TERMS,
+    RawPosting,
+    ats_job_id_from_url,
+    degree_levels,
+    pick_date,
+    strip_html,
+)
 
 SIMPLIFY_URL = "https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/.github/scripts/listings.json"
 GREENHOUSE_API = "https://boards-api.greenhouse.io/v1/boards"
@@ -29,6 +36,7 @@ async def fetch_simplify(client: httpx.AsyncClient) -> list[RawPosting]:
             locations=row.get("locations", []), terms=terms, url=row["url"],
             posted_at=posted_at, date_kind=date_kind,
             ats=ats and ats[0], board=ats and ats[1], ats_job_id=ats and ats[2],
+            degree_levels=degree_levels(row.get("degrees"), row["title"]),
         ))
     return postings
 
