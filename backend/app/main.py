@@ -47,7 +47,7 @@ async def guard_requests(request: Request, call_next):
     origin = request.headers.get("origin")
     if request.method == "POST" and origin and origin not in settings.cors_origin_list:
         return JSONResponse({"detail": "Requests from other sites aren't allowed."}, status_code=403)
-    if request.url.path == "/api/parse":
+    if request.method == "POST" and request.url.path == "/api/parse":
         size = request.headers.get("content-length")
         if not size or not size.isdigit() or int(size) > MAX_BYTES + 64 * 1024:
             return JSONResponse({"detail": "That file is over 5 MB. Upload a smaller PDF or Word file."}, status_code=413)

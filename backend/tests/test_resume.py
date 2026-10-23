@@ -30,18 +30,19 @@ def test_extracts_pdf_and_docx(name, expect):
         ("broken.pdf", b"%PDF-1.4 garbage", "couldn't open"),
         ("sheet.docx", None, "couldn't open"),  # a zip that isn't a Word file: no library internals in the message
         ("bomb.docx", None, "too large"),  # a real Word file plus a part that is huge when unpacked
+        ("xmlbomb.docx", None, "too large"),  # small upload, but its XML would cost gigabytes to parse
     ],
 )
 def test_rejects_bad_uploads_with_a_plain_message(name, data, message):
     if data is None:
-        data = _docx_variant(bomb=name == "bomb.docx")
+        data = _docx_variant(bomb=name.endswith("bomb.docx"), xml=name == "xmlbomb.docx")
     with pytest.raises(ValueError, match=message) as error:
         extract_text(name, data)
     assert "object at 0x" not in str(error.value)
 
 
-def _docx_variant(bomb: bool) -> bytes:
-    """The real fixture, either with an 80 MB padding part added or relabeled as a spreadsheet."""
+def _docx_variant(bomb: bool, xml: bool = False) -> bytes:
+    """The real fixture with a huge part added (80 MB of media, or 6 MB of XML), or relabeled as a spreadsheet."""
     buffer = io.BytesIO()
     with zipfile.ZipFile(RESUMES / "chem_sam_okafor.docx") as src, zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as out:
         for item in src.infolist():
@@ -49,7 +50,9 @@ def _docx_variant(bomb: bool) -> bytes:
             if not bomb and item.filename == "[Content_Types].xml":
                 data = data.replace(b"wordprocessingml.document.main+xml", b"spreadsheetml.sheet.main+xml")
             out.writestr(item, data)
-        if bomb:
+        if bomb and xml:
+            out.writestr("word/padding.xml", b"<w:p/>" * 1_000_000)
+        elif bomb:
             out.writestr("word/media/padding.bin", b"0" * 80_000_000)
     return buffer.getvalue()
 

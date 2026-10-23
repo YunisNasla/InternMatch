@@ -170,3 +170,8 @@ def test_posts_from_other_sites_are_refused_before_any_work(client, monkeypatch)
     assert http.post("/api/search", headers={"origin": "https://evil.example"}, json={}).status_code == 403
     assert http.post("/api/parse", headers={"origin": "http://localhost:5173"}, **upload).status_code == 200
     assert http.post("/api/parse", **upload).status_code == 200  # no Origin: a script or curl on this machine
+
+
+def test_only_posts_to_parse_get_the_size_check(client):
+    http, _ = client
+    assert http.delete("/api/parse").status_code == 405
