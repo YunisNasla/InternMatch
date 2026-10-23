@@ -57,7 +57,8 @@ WORK_ARRANGEMENTS = {
     "not_stated": "Not stated",
 }
 
-# Update after this recruiting cycle (see CLAUDE.md open questions).
+# Update after this recruiting cycle, and bump the storage key version in frontend/src/lib/storage.ts so saved
+# filters with an old term are dropped instead of failing every search.
 SUPPORTED_TERMS = ("Summer 2027", "Fall 2026", "Spring 2027")
 
 

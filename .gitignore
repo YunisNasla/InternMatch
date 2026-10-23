@@ -32,7 +32,11 @@ coverage/
 .scratch/
 *.log
 *.bundle
-.impeccable/review/
-.impeccable/mocks/
-.impeccable/questions/
-.impeccable/hook.cache.json
+
+# Local working notes and tool files, not part of the submission
+CLAUDE.md
+PLAN.md
+PRODUCT.md
+DESIGN.md
+docs/
+.impeccable/
