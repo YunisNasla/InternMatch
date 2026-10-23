@@ -15,6 +15,11 @@ MAX_CHARS = 30_000
 # XML costs about 50x its size in memory, so everything except recognised images shares a tight cap.
 MAX_UNPACKED = 50 * 1024 * 1024
 MAX_NON_IMAGE = 5 * 1024 * 1024
+# zipfile inflates up to 2 GB per step before trimming a part to its declared size, so a part that lies about its
+# size could cost gigabytes even though the file is refused. 16 MB steps keep the overshoot small; much smaller steps
+# make zipfile's buffer growth costly on large honest parts (measured: 1 MB steps took a 45 MB part to 1 GB).
+# Process-wide, and only changes the step size of reads.
+zipfile.ZipExtFile.MAX_N = 16 << 20
 _IMAGE_MAGIC = (b"\x89PNG", b"\xff\xd8\xff", b"GIF8", b"BM", b"II*\x00", b"MM\x00*", b"\x01\x00\x00\x00", b"\xd7\xcd\xc6\x9a")
 
 

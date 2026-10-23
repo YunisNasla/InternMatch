@@ -1,6 +1,10 @@
 import io
 import json
+import struct
+import subprocess
+import sys
 import zipfile
+import zlib
 from datetime import date
 from pathlib import Path
 
@@ -75,3 +79,36 @@ async def test_parser_sends_three_examples_then_the_resume():
     assert date.today().isoformat() in call["system"] and "earth_environmental_science" in call["system"]
     assert call["model"] == "claude-sonnet-5-5" and "temperature" not in call
     assert profile.location.city == "Riverside"
+
+
+def _lying_size_docx(claimed: int = 1500, real: int = 1 << 30) -> bytes:
+    """The fixture with [Content_Types].xml swapped for `real` bytes of deflated zeros that claim to be `claimed` long,
+    with a checksum matching the claim, so the size caps, the image peek and the CRC check all pass."""
+    with zipfile.ZipFile(RESUMES / "chem_sam_okafor.docx") as z:
+        parts = [(i.filename, z.read(i)) for i in z.infolist()]
+    bomb = zlib.compressobj(9, zlib.DEFLATED, -15)
+    bomb_data = b"".join(bomb.compress(b"\0" * (1 << 24)) for _ in range(real >> 24)) + bomb.flush()
+    body, central = b"", b""
+    for name, raw in parts:
+        n = name.encode()
+        if name == "[Content_Types].xml":
+            comp, size, crc = bomb_data, claimed, zlib.crc32(b"\0" * claimed)
+        else:
+            c = zlib.compressobj(9, zlib.DEFLATED, -15)
+            comp, size, crc = c.compress(raw) + c.flush(), len(raw), zlib.crc32(raw)
+        central += struct.pack("<IHHHHHHIIIHHHHHII", 0x02014B50, 20, 20, 0, 8, 0, 0x21, crc, len(comp), size, len(n),
+                               0, 0, 0, 0, 0, len(body)) + n
+        body += struct.pack("<IHHHHHIIIHH", 0x04034B50, 20, 0, 8, 0, 0x21, crc, len(comp), size, len(n), 0) + n + comp
+    return body + central + struct.pack("<IHHHHIIH", 0x06054B50, 0, 0, len(parts), len(parts), len(central), len(body), 0)
+
+
+def test_a_part_that_lies_about_its_size_cannot_inflate_far_past_it(tmp_path):
+    path = tmp_path / "lying.docx"
+    path.write_bytes(_lying_size_docx())
+    code = ("import resource, sys\nfrom app.resume.extract import extract_text\n"
+            "try:\n    extract_text('x.docx', open(sys.argv[1], 'rb').read())\nexcept ValueError:\n    pass\n"
+            "print(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)")
+    out = subprocess.run([sys.executable, "-c", code, str(path)], capture_output=True, text=True, check=True,
+                         cwd=Path(__file__).parents[1]).stdout
+    peak_mb = int(out) / (1 << 20 if sys.platform == "darwin" else 1 << 10)  # ru_maxrss is bytes on macOS, KB on Linux
+    assert peak_mb < 300, f"peak {peak_mb:.0f} MB"
