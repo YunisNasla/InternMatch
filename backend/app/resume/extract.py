@@ -11,10 +11,11 @@ MAX_BYTES = 5 * 1024 * 1024
 # shortcut: resumes are 1 to 2 pages; these caps stop a huge PDF from stalling the server or the parser call. Raise them if real CVs get cut off.
 MAX_PAGES = 6
 MAX_CHARS = 30_000
-# A Word file is a zip. Its XML is parsed into a full tree (about 50x its size in memory), so it gets a tight cap;
-# images and other media only count toward the total.
+# A Word file is a zip. Any part may be parsed as XML (Word finds parts through [Content_Types].xml, not by name), and
+# XML costs about 50x its size in memory, so everything except recognised images shares a tight cap.
 MAX_UNPACKED = 50 * 1024 * 1024
-MAX_XML = 5 * 1024 * 1024
+MAX_NON_IMAGE = 5 * 1024 * 1024
+_IMAGE_MAGIC = (b"\x89PNG", b"\xff\xd8\xff", b"GIF8", b"BM", b"II*\x00", b"MM\x00*", b"\x01\x00\x00\x00", b"\xd7\xcd\xc6\x9a")
 
 
 class _TooLarge(Exception):
@@ -38,8 +39,8 @@ def extract_text(filename: str, data: bytes) -> str:
         else:
             with zipfile.ZipFile(io.BytesIO(data)) as z:
                 parts = z.infolist()
-            xml = sum(p.file_size for p in parts if p.filename.endswith((".xml", ".rels")))
-            if xml > MAX_XML or sum(p.file_size for p in parts) > MAX_UNPACKED:
+                non_image = sum(p.file_size for p in parts if not z.open(p).read(4).startswith(_IMAGE_MAGIC))
+            if non_image > MAX_NON_IMAGE or sum(p.file_size for p in parts) > MAX_UNPACKED:
                 raise _TooLarge
             document = docx.Document(io.BytesIO(data))
             cells = (cell.text for table in document.tables for row in table.rows for cell in row.cells)
