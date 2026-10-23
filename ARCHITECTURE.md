@@ -273,12 +273,6 @@ These tables cover everything above. Adjust freely during the build.
    - The chat sends feedback through Prompt 4 (refine mode). It changes the filters, and the list updates.
    - "Score 10 more" scores the next 10.
 
-## Demo reliability
+## When a scorer call fails
 
-The live demo runs for real, used the way a normal user would. If an LLM call fails during a search, the app automatically falls back to cached results where they exist, and shows what it couldn't score instead of failing the page.
-
-The fallback only helps if the cache already holds the demo's scores, since the key includes the profile hash. Before the demo:
-
-1. With `ENABLE_ADMIN_ROUTES=true`, run `POST /api/ingest`, so the data is fresh and no startup ingest runs on stage. Do this within 6 hours of the demo, and check that no scheduled run (every 6 hours) falls between the warm-up in step 2 and the end of the demo. A new run can push unscored postings into the top 20.
-2. Run the exact demo resume and chat steps once, to fill the cache.
-3. After that, don't edit the profile or the scorer prompts. Either change gives a new cache key and empties the fallback.
+A search never fails the page because one scorer call failed. For each posting it couldn't score, the app serves the newest cached score for the same profile and job, under any emphasis or prompt version, if one exists. Otherwise the posting is left out, and the page shows how many couldn't be scored.

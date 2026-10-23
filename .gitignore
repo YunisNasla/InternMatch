@@ -1,14 +1,38 @@
+# Secrets: only the placeholder file is committed
 .env
-backend/.venv/
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local data: the SQLite database holds the score cache
 backend/data/*.db
+backend/data/*.db-*
+*.db
+*.db-*
+*.sqlite*
+
+# Dependencies, builds and caches
 node_modules/
 frontend/dist/
+backend/.venv/
+.venv/
+venv/
 __pycache__/
-.scratch/
-.DS_Store
-backend/data/*.db-*
 *.pyc
 .pytest_cache/
 .ruff_cache/
+coverage/
+
+# Editors, OS and local tool state
+.DS_Store
+.vscode/
+.idea/
+.claude/
+.scratch/
+*.log
+*.bundle
 .impeccable/review/
 .impeccable/mocks/
+.impeccable/questions/
+.impeccable/hook.cache.json
