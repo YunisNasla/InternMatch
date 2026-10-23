@@ -67,3 +67,14 @@ def test_fix_reply_replaces_when_nothing_applied_and_adds_otherwise():
     applied = [change("max_distance_miles", "set", 30)]
     assert refine.fix_reply("Within 30 miles.", applied, "Pamona, CA") == f"Within 30 miles. {msg}"
     assert refine.fix_reply("Within 30 miles.", applied, None) == "Within 30 miles."
+
+
+def test_keyword_and_company_lists_are_capped():
+    from pydantic import ValidationError
+
+    from app.schemas import FilterState
+
+    FilterState(include_keywords=["x"] * 50)
+    for field in ("include_keywords", "exclude_keywords", "exclude_companies"):
+        with pytest.raises(ValidationError):
+            FilterState(**{field: ["x"] * 51})

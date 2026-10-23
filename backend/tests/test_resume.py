@@ -1,4 +1,6 @@
+import io
 import json
+import zipfile
 from datetime import date
 from pathlib import Path
 
@@ -26,11 +28,30 @@ def test_extracts_pdf_and_docx(name, expect):
         ("fake.pdf", b"not a pdf at all", "PDF or Word"),
         ("blank.pdf", make_pdf(""), "any text"),
         ("broken.pdf", b"%PDF-1.4 garbage", "couldn't open"),
+        ("sheet.docx", None, "couldn't open"),  # a zip that isn't a Word file: no library internals in the message
+        ("bomb.docx", None, "too large"),  # a real Word file plus a part that is huge when unpacked
     ],
 )
 def test_rejects_bad_uploads_with_a_plain_message(name, data, message):
-    with pytest.raises(ValueError, match=message):
+    if data is None:
+        data = _docx_variant(bomb=name == "bomb.docx")
+    with pytest.raises(ValueError, match=message) as error:
         extract_text(name, data)
+    assert "object at 0x" not in str(error.value)
+
+
+def _docx_variant(bomb: bool) -> bytes:
+    """The real fixture, either with an 80 MB padding part added or relabeled as a spreadsheet."""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(RESUMES / "chem_sam_okafor.docx") as src, zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as out:
+        for item in src.infolist():
+            data = src.read(item)
+            if not bomb and item.filename == "[Content_Types].xml":
+                data = data.replace(b"wordprocessingml.document.main+xml", b"spreadsheetml.sheet.main+xml")
+            out.writestr(item, data)
+        if bomb:
+            out.writestr("word/media/padding.bin", b"0" * 80_000_000)
+    return buffer.getvalue()
 
 
 async def test_parser_sends_three_examples_then_the_resume():

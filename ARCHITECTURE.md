@@ -249,7 +249,7 @@ These tables cover everything above. Adjust freely during the build.
 
 | Endpoint | Input | Output |
 | --- | --- | --- |
-| `POST /api/parse` | Resume file (multipart, PDF or DOCX, up to 5 MB, refused with 413 before upload when larger) + optional free text | `profile`, starting `filters`, Prompt 4 `reply`, `is_stem`, `home_city_found`. Runs Prompt 1, builds the default filters from `suggested_role_types` and city, then runs Prompt 4 in initial mode. Prompt 4 is skipped when the free text is empty, and `reply` is then empty. |
+| `POST /api/parse` | Resume file (multipart, PDF or DOCX, up to 5 MB, refused with 413 before upload when larger; a DOCX that unpacks to over 50 MB is refused too) + optional free text | `profile`, starting `filters`, Prompt 4 `reply`, `is_stem`, `home_city_found`. Runs Prompt 1, builds the default filters from `suggested_role_types` and city, then runs Prompt 4 in initial mode. Prompt 4 is skipped when the free text is empty, and `reply` is then empty. |
 | `POST /api/search` | `profile`, `filters`, `offset` | Scored cards, the 50 newest "Also open" postings plus `also_open_total`, hidden-location count, `has_more`, `home_city_found`, and the postings it couldn't score |
 | `POST /api/refine` | `filters`, `message`, results summary, recent turns | `intent`, applied `changes`, `dropped` changes, `reply`, updated `filters` |
 | `GET /api/city?q=` | A city as "City, ST" | `found`: whether the cities file has it, for page 2's "City not found" |
@@ -257,6 +257,8 @@ These tables cover everything above. Adjust freely during the build.
 | `POST /api/ingest` | None | Triggers an ingest run. Exists only when `ENABLE_ADMIN_ROUTES=true` (default false). |
 
 "Score 10 more" calls `/api/search` with the next `offset`.
+
+Every `POST` whose `Origin` header names a site outside `CORS_ORIGINS` gets a 403 before any work. CORS only stops other sites from reading replies, so without this any page the student visits could post a resume and spend their API credits. Requests with no `Origin`, such as `curl` on the same machine, are allowed.
 
 ## Request flow
 

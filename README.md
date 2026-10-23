@@ -36,7 +36,7 @@ The scorer (persona + chain-of-thought) was compared with a bare prompt, "Rate h
 
 ![Evaluation results](eval/results.png)
 
-The scorer did not beat the bare prompt on accuracy or consistency in this small test. It scored more harshly than the labels, counting implied requirements and nice-to-haves as gaps. Its value is that every score comes with checkable evidence, gaps and a resume tip, and its output was valid every time; the bare prompt broke its format once in 30 replies. The labels were written by Claude from a rubric, not by a human recruiter. Details and scripts are in [eval/](eval/).
+The scorer did not beat the bare prompt on accuracy or consistency in this small test. It scored more harshly than the labels, counting implied requirements and nice-to-haves as gaps. Its value is that every score comes with checkable evidence, gaps and a resume tip, and its output was valid every time; the bare prompt gave one out-of-range score (250) in 60 replies. The labels were written by Claude from a rubric, not by a human recruiter. Details and scripts are in [eval/](eval/).
 
 ## Tech stack
 
@@ -52,7 +52,7 @@ You need Python 3.12+, Node 22.22+ and an [Anthropic API key](https://console.an
 2. Backend: `cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`
 3. Frontend: `cd frontend && npm install`
 4. Pull postings once (about 10 minutes and 4,000 small Haiku calls the first time): `.venv/bin/python -m app.ingest.pipeline` from `backend/`
-5. Run both, then open http://localhost:5173:
+5. Run each in its own terminal from the repo root, then open http://localhost:5173:
    ```sh
    cd backend && .venv/bin/uvicorn app.main:app
    cd frontend && npm run dev
@@ -63,7 +63,7 @@ Tests: `.venv/bin/pytest` and `.venv/bin/ruff check .` in `backend/`; `npm run l
 ## Privacy
 
 - No accounts. Your profile stays in your browser and is sent with each request. "Clear my data" deletes it.
-- The resume is read in memory and never stored. The server keeps only scores, keyed by a hash of the profile.
+- The resume is read in memory and never stored. The server does cache each score result, including the recruiter notes about your resume, keyed by a hash of the profile. "Clear my data" doesn't remove those.
 - Resume text and profiles are sent to the Anthropic API for parsing and scoring.
 
 ## Data sources and limits

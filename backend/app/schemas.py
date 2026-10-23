@@ -89,9 +89,10 @@ class FilterState(BaseModel):
     )
     terms: list[Term] = Field(default=["Summer 2027"], min_length=1)
     posted_within_days: Literal[7, 30] | None = None
-    exclude_companies: list[ShortText] = []
-    include_keywords: list[ShortText] = []
-    exclude_keywords: list[ShortText] = []
+    # Capped: these lists go into the refinement prompt.
+    exclude_companies: list[ShortText] = Field(default=[], max_length=50)
+    include_keywords: list[ShortText] = Field(default=[], max_length=50)
+    exclude_keywords: list[ShortText] = Field(default=[], max_length=50)
     emphasis: ShortText | None = None
     sort_by: Literal["fit_score", "posted"] = "fit_score"
 

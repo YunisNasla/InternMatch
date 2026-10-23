@@ -40,8 +40,13 @@ app = FastAPI(title="InternMatch", lifespan=lifespan)
 
 
 @app.middleware("http")
-async def refuse_big_uploads(request: Request, call_next):
-    """Refuse an oversized resume before any of it is read or spooled."""
+async def guard_requests(request: Request, call_next):
+    """Refuse cross-site POSTs and oversized resumes before any work is done."""
+    # CORS stops other sites reading replies, not sending requests: without this, any page the student visits could
+    # post a resume here and spend their API credits. Requests with no Origin (curl, scripts) come from this machine.
+    origin = request.headers.get("origin")
+    if request.method == "POST" and origin and origin not in settings.cors_origin_list:
+        return JSONResponse({"detail": "Requests from other sites aren't allowed."}, status_code=403)
     if request.url.path == "/api/parse":
         size = request.headers.get("content-length")
         if not size or not size.isdigit() or int(size) > MAX_BYTES + 64 * 1024:

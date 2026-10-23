@@ -159,3 +159,14 @@ def test_also_open_is_capped_with_a_total(client):
         conn.commit()
     body = http.post("/api/search", json={"profile": json.loads(PARSED), "filters": {}}).json()
     assert len(body["also_open"]) == 50 and body["also_open_total"] == 60 and fake.calls == []
+
+
+def test_posts_from_other_sites_are_refused_before_any_work(client, monkeypatch):
+    http, fake = client
+    monkeypatch.setattr("app.main.settings.cors_origins", "http://localhost:5173")
+    upload = {"files": {"file": (RESUME.name, RESUME.read_bytes())}}
+    evil = http.post("/api/parse", headers={"origin": "https://evil.example"}, **upload)
+    assert evil.status_code == 403 and fake.calls == []
+    assert http.post("/api/search", headers={"origin": "https://evil.example"}, json={}).status_code == 403
+    assert http.post("/api/parse", headers={"origin": "http://localhost:5173"}, **upload).status_code == 200
+    assert http.post("/api/parse", **upload).status_code == 200  # no Origin: a script or curl on this machine
