@@ -32,27 +32,31 @@ def test_extracts_pdf_and_docx(name, expect):
         ("bomb.docx", None, "too large"),  # a real Word file plus a part that is huge when unpacked
         ("xmlbomb.docx", None, "too large"),  # small upload, but its XML would cost gigabytes to parse
         ("renamed_xmlbomb.docx", None, "too large"),  # the same, with the document part renamed so its name hides it
+        ("bzip2.docx", None, "couldn't open"),  # Word only writes deflate; bzip2 can pack gigabytes into a few bytes
     ],
 )
 def test_rejects_bad_uploads_with_a_plain_message(name, data, message):
     if data is None:
-        data = _docx_variant(bomb=name.endswith("bomb.docx"), xml="xmlbomb" in name, renamed=name.startswith("renamed"))
+        data = _docx_variant(bomb=name.endswith("bomb.docx"), xml="xmlbomb" in name, renamed=name.startswith("renamed"),
+                             bzip2=name == "bzip2.docx", sheet=name == "sheet.docx")
     with pytest.raises(ValueError, match=message) as error:
         extract_text(name, data)
     assert "object at 0x" not in str(error.value)
 
 
-def _docx_variant(bomb: bool, xml: bool = False, renamed: bool = False) -> bytes:
+def _docx_variant(bomb: bool, xml: bool = False, renamed: bool = False, bzip2: bool = False, sheet: bool = False) -> bytes:
     """The real fixture with a huge part added (80 MB of media, or 6 MB of XML), or relabeled as a spreadsheet."""
     buffer = io.BytesIO()
     with zipfile.ZipFile(RESUMES / "chem_sam_okafor.docx") as src, zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as out:
         for item in src.infolist():
             data = src.read(item)
-            if not bomb and item.filename == "[Content_Types].xml":
+            if sheet and item.filename == "[Content_Types].xml":
                 data = data.replace(b"wordprocessingml.document.main+xml", b"spreadsheetml.sheet.main+xml")
             if renamed:  # Word finds parts by the names in [Content_Types].xml and the .rels files, not by extension
                 data = data.replace(b"document.xml", b"document.dat")
                 item.filename = item.filename.replace("document.xml", "document.dat")
+            if bzip2 and item.filename == "docProps/app.xml":  # a real, valid part, just compressed with bzip2
+                item.compress_type = zipfile.ZIP_BZIP2
             out.writestr(item, data)
         if bomb and xml:
             out.writestr("word/padding.dat" if renamed else "word/padding.xml", b"<w:p/>" * 1_000_000)

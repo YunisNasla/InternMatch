@@ -39,6 +39,10 @@ def extract_text(filename: str, data: bytes) -> str:
         else:
             with zipfile.ZipFile(io.BytesIO(data)) as z:
                 parts = z.infolist()
+                # Word only writes stored or deflate parts. Other methods (bzip2, LZMA) unpack in big unchecked
+                # chunks, so even peeking at their first bytes could cost gigabytes: refuse before opening any part.
+                if any(p.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED) for p in parts):
+                    raise ValueError("not a Word file")
                 non_image = sum(p.file_size for p in parts if not z.open(p).read(4).startswith(_IMAGE_MAGIC))
             if non_image > MAX_NON_IMAGE or sum(p.file_size for p in parts) > MAX_UNPACKED:
                 raise _TooLarge

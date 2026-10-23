@@ -78,3 +78,16 @@ def test_keyword_and_company_lists_are_capped():
     for field in ("include_keywords", "exclude_keywords", "exclude_companies"):
         with pytest.raises(ValidationError):
             FilterState(**{field: ["x"] * 51})
+
+
+def test_fixed_value_lists_are_capped_at_their_option_count():
+    from pydantic import ValidationError
+
+    from app import taxonomy
+    from app.schemas import FilterState
+
+    FilterState(role_types=list(taxonomy.ROLE_TYPES))
+    for field, value in (("industries", "space"), ("role_types", "software"), ("work_arrangements", "remote"),
+                         ("terms", "Summer 2027")):
+        with pytest.raises(ValidationError):
+            FilterState(**{field: [value] * 30})

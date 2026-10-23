@@ -80,16 +80,16 @@ ShortText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1
 class FilterState(BaseModel):
     """Search preferences. Defaults match PROMPTS.md; Pydantic enforces every allowed value."""
 
-    industries: list[Industry] = []  # empty means all
-    role_types: list[RoleType] = []  # empty means all
+    # Every list goes into the refinement prompt, so each is capped at its number of options.
+    industries: list[Industry] = Field(default=[], max_length=len(taxonomy.INDUSTRIES))  # empty means all
+    role_types: list[RoleType] = Field(default=[], max_length=len(taxonomy.ROLE_TYPES))  # empty means all
     home_city: ShortText | None = None
     max_distance_miles: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     work_arrangements: list[Literal["in_person", "hybrid", "remote"]] = Field(
-        default=["in_person", "hybrid", "remote"], min_length=1,
+        default=["in_person", "hybrid", "remote"], min_length=1, max_length=3,
     )
-    terms: list[Term] = Field(default=["Summer 2027"], min_length=1)
+    terms: list[Term] = Field(default=["Summer 2027"], min_length=1, max_length=len(taxonomy.SUPPORTED_TERMS))
     posted_within_days: Literal[7, 30] | None = None
-    # Capped: these lists go into the refinement prompt.
     exclude_companies: list[ShortText] = Field(default=[], max_length=50)
     include_keywords: list[ShortText] = Field(default=[], max_length=50)
     exclude_keywords: list[ShortText] = Field(default=[], max_length=50)
